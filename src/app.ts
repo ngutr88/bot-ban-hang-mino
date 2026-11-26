@@ -17,6 +17,8 @@ import { registerProductRoutes } from "./modules/products/products.routes.js";
 import { registerBotRuleRoutes } from "./modules/bot-rules/bot-rules.routes.js";
 import { registerOrderRoutes } from "./modules/orders/orders.routes.js";
 import { registerHealthRoutes } from "./modules/health/health.routes.js";
+import { registerPublicChatRoutes } from "./modules/chat/chat-public.routes.js";
+import { registerAdminChatRoutes } from "./modules/chat/chat-admin.routes.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.resolve(__dirname, "..", "public");
@@ -184,6 +186,8 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
   await registerProductRoutes(app, { prisma, guards });
   await registerBotRuleRoutes(app, { prisma, guards });
   await registerOrderRoutes(app, { prisma, config, guards });
+  await registerPublicChatRoutes(app, { prisma, config });
+  await registerAdminChatRoutes(app, { prisma, guards });
 
   await app.register(fastifyStatic, {
     root: PUBLIC_DIR,

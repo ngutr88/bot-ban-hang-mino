@@ -8,15 +8,23 @@ import { PrismaClient } from "@prisma/client";
 import { PGlite } from "@electric-sql/pglite";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const MIGRATION_SQL_PATH = path.resolve(
-  __dirname,
-  "..",
-  "..",
-  "prisma",
-  "migrations",
-  "20261126000000_init_m1",
-  "migration.sql"
-);
+const MIGRATIONS_DIR = path.resolve(__dirname, "..", "..", "prisma", "migrations");
+
+async function loadAllMigrationsSql(): Promise<string[]> {
+  const entries = await fs.readdir(MIGRATIONS_DIR, { withFileTypes: true });
+  const dirs = entries
+    .filter((e) => e.isDirectory())
+    .map((e) => e.name)
+    .sort((a, b) => a.localeCompare(b));
+
+  const sqlList: string[] = [];
+  for (const dir of dirs) {
+    const file = path.join(MIGRATIONS_DIR, dir, "migration.sql");
+    const sql = await fs.readFile(file, "utf8");
+    sqlList.push(sql);
+  }
+  return sqlList;
+}
 
 export interface TestDbContext {
   prisma: PrismaClient;
@@ -153,13 +161,15 @@ async function startPgliteTcpServer(pglite: PGlite): Promise<{
 }
 
 export async function createTestDatabase(): Promise<TestDbContext> {
-  const migrationSql = await fs.readFile(MIGRATION_SQL_PATH, "utf8");
+  const migrationsSql = await loadAllMigrationsSql();
 
   const externalTestUrl = process.env.TEST_DATABASE_URL?.trim();
   if (externalTestUrl) {
     const pool = new pg.Pool({ connectionString: externalTestUrl, max: 5 });
     await pool.query("DROP SCHEMA IF EXISTS public CASCADE; CREATE SCHEMA public;");
-    await pool.query(migrationSql);
+    for (const sql of migrationsSql) {
+      await pool.query(sql);
+    }
     const adapter = new PrismaPg(pool);
     const prisma = new PrismaClient({ adapter });
 
@@ -174,7 +184,9 @@ export async function createTestDatabase(): Promise<TestDbContext> {
   }
 
   const pglite = await PGlite.create();
-  await pglite.exec(migrationSql);
+  for (const sql of migrationsSql) {
+    await pglite.exec(sql);
+  }
 
   const tcp = await startPgliteTcpServer(pglite);
   const connectionString = `postgresql://postgres:postgres@127.0.0.1:${tcp.port}/postgres?sslmode=disable`;

@@ -15,6 +15,12 @@ export interface AppConfig {
   publicOrderRateLimitWindowMs: number;
   adminLoginRateLimitMax: number;
   adminLoginRateLimitWindowMs: number;
+  visitorChatTtlDays: number;
+  publicChatSessionRateLimitMax: number;
+  publicChatSessionRateLimitWindowMs: number;
+  publicChatMessageRateLimitMax: number;
+  publicChatMessageRateLimitWindowMs: number;
+  chatRetentionDays: number | null;
 }
 
 function parsePositiveInt(raw: string | undefined, fallback: number, name: string): number {
@@ -109,6 +115,35 @@ export function loadConfig(overrides: Partial<Record<string, string>> = {}): App
       env.ADMIN_LOGIN_RATE_LIMIT_WINDOW_MS,
       900_000,
       "ADMIN_LOGIN_RATE_LIMIT_WINDOW_MS"
-    )
+    ),
+    visitorChatTtlDays: parsePositiveInt(
+      env.VISITOR_CHAT_TTL_DAYS,
+      30,
+      "VISITOR_CHAT_TTL_DAYS"
+    ),
+    publicChatSessionRateLimitMax: parsePositiveInt(
+      env.PUBLIC_CHAT_SESSION_RATE_LIMIT_MAX,
+      15,
+      "PUBLIC_CHAT_SESSION_RATE_LIMIT_MAX"
+    ),
+    publicChatSessionRateLimitWindowMs: parsePositiveInt(
+      env.PUBLIC_CHAT_SESSION_RATE_LIMIT_WINDOW_MS,
+      900_000,
+      "PUBLIC_CHAT_SESSION_RATE_LIMIT_WINDOW_MS"
+    ),
+    publicChatMessageRateLimitMax: parsePositiveInt(
+      env.PUBLIC_CHAT_MESSAGE_RATE_LIMIT_MAX,
+      30,
+      "PUBLIC_CHAT_MESSAGE_RATE_LIMIT_MAX"
+    ),
+    publicChatMessageRateLimitWindowMs: parsePositiveInt(
+      env.PUBLIC_CHAT_MESSAGE_RATE_LIMIT_WINDOW_MS,
+      60_000,
+      "PUBLIC_CHAT_MESSAGE_RATE_LIMIT_WINDOW_MS"
+    ),
+    chatRetentionDays:
+      env.CHAT_RETENTION_DAYS && env.CHAT_RETENTION_DAYS.trim() !== ""
+        ? parsePositiveInt(env.CHAT_RETENTION_DAYS, 90, "CHAT_RETENTION_DAYS")
+        : null
   };
 }

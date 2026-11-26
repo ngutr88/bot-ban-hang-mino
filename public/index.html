@@ -92,6 +92,8 @@
   .tin-nhan{max-width:84%;padding:10px 14px;border-radius:16px;font-size:.9rem;white-space:pre-line;word-break:break-word}
   .tin-khach{align-self:flex-end;background:var(--tuody);color:#fff;border-bottom-right-radius:4px}
   .tin-bot{align-self:flex-start;background:#eef3fe;color:var(--chu-den);border-bottom-left-radius:4px}
+  .tin-admin{align-self:flex-start;background:#ecfdf5;border:1px solid #a7f3d0;color:var(--chu-den);border-bottom-left-radius:4px}
+  .nhan-nguoi-gui{display:block;font-size:.73rem;font-weight:800;color:#047857;margin-bottom:3px}
   @media (max-width:880px){
     .hero .khung-ngoai{grid-template-columns:1fr}
     .hop-chat-demo{max-width:460px;margin:0 auto;width:100%}
@@ -328,16 +330,19 @@
 </div>
 
 <!-- CHAT WIDGET -->
-<div class="cua-so-chat" id="cua-so-chat" role="region" aria-label="Hộp chat trợ lý tự động">
+<div class="cua-so-chat" id="cua-so-chat" role="region" aria-label="Hộp chat hỗ trợ trực tuyến">
   <div class="dau-hop">
     <div class="chan-tron">🤖</div>
-    <div><b>Trợ lý <span class="ten-bot">Mino</span></b><small>Trả lời tự động theo từ khóa</small></div>
+    <div>
+      <b>Hỗ trợ <span class="ten-bot">Mino</span></b>
+      <small id="chat-mode-sub">Trợ lý tự động &amp; Chủ shop hỗ trợ</small>
+    </div>
   </div>
   <div class="noi-tin" id="noi-tin-chat"></div>
   <div class="goi-y" id="goi-y"></div>
   <div class="dang-go" id="dang-go"></div>
   <div class="o-nhap">
-    <input id="o-nhap-chat" aria-label="Nhập câu hỏi cho trợ lý" placeholder="Nhắn tên món hoặc từ khóa…">
+    <input id="o-nhap-chat" maxlength="1000" aria-label="Nhập câu hỏi cho cửa hàng" placeholder="Nhắn tên món hoặc câu hỏi…">
     <button type="button" id="nut-gui-tin" aria-label="Gửi tin nhắn">➤</button>
   </div>
 </div>
@@ -752,59 +757,52 @@
     }
   });
 
-  /* ===== BOT WIDGET (pure textContent rendering, server rules, no stock fabrication) ===== */
+  /* ===== M2 SERVER-BACKED WEB CHAT WIDGET (pure textContent rendering, cursor polling) ===== */
   const chatWindow = document.getElementById("cua-so-chat");
   const chatMessages = document.getElementById("noi-tin-chat");
   const chatInput = document.getElementById("o-nhap-chat");
+  const chatSendBtn = document.getElementById("nut-gui-tin");
   const typingIndicator = document.getElementById("dang-go");
-  let chatOpenedOnce = false;
+  const chatModeSub = document.getElementById("chat-mode-sub");
 
-  function appendChatMessage(role, text) {
-    const bubble = document.createElement("div");
-    bubble.className = `tin-nhan ${role === "khach" ? "tin-khach" : "tin-bot"}`;
-    bubble.textContent = text;
-    chatMessages.appendChild(bubble);
-    chatMessages.scrollTop = chatMessages.scrollHeight;
+  let chatSessionReady = false;
+  let chatInitializing = false;
+  let latestChatCursor = null;
+  let pendingMsgIdemKey = null;
+  const seenMessageIds = new Set();
+
+  function updateChatHeaderMode(sessionObj) {
+    if (!sessionObj) return;
+    if (sessionObj.handlingMode === "human") {
+      chatModeSub.textContent = "👑 Chủ shop đang trực tiếp hỗ trợ";
+    } else {
+      chatModeSub.textContent = "Trả lời tự động · Chủ shop có thể tham gia";
+    }
   }
 
-  function computeBotReply(question) {
-    const normalizedMsg = normalizeText(question);
-    if (!normalizedMsg) return state.shop.fallbackReply;
+  function appendServerMessage(msg) {
+    if (!msg || !msg.id || seenMessageIds.has(msg.id)) return;
+    seenMessageIds.add(msg.id);
 
-    // 1) Product match (reports listed price; never claims stock availability)
-    let matchedProduct = state.products.find((p) => {
-      const pNorm = normalizeText(p.name);
-      return pNorm.length > 0 && normalizedMsg.includes(pNorm);
-    });
-
-    if (!matchedProduct) {
-      const genericWords = new Set([
-        "set","hop","hộp","bo","bộ","qua","quà","tang","tặng","hang","hàng","mon","món","cua","của","cho","trong","nha","nhà"
-      ]);
-      matchedProduct = state.products.find((p) => {
-        const tokens = normalizeText(p.name)
-          .split(" ")
-          .filter((t) => t.length >= 4 && !genericWords.has(t));
-        return tokens.length > 0 && tokens.some((t) => normalizedMsg.includes(t));
-      });
+    const bubble = document.createElement("div");
+    if (msg.senderType === "customer") {
+      bubble.className = "tin-nhan tin-khach";
+      bubble.textContent = msg.body;
+    } else if (msg.senderType === "admin") {
+      bubble.className = "tin-nhan tin-admin";
+      const badge = document.createElement("span");
+      badge.className = "nhan-nguoi-gui";
+      badge.textContent = "👑 Chủ shop";
+      const bodySpan = document.createElement("span");
+      bodySpan.textContent = msg.body;
+      bubble.append(badge, bodySpan);
+    } else {
+      bubble.className = "tin-nhan tin-bot";
+      bubble.textContent = msg.body;
     }
 
-    if (matchedProduct) {
-      const emojiPart = matchedProduct.emoji ? `${matchedProduct.emoji} ` : "";
-      const descPart = matchedProduct.description ? ` — ${matchedProduct.description}` : "";
-      return `Dạ món ${emojiPart}${matchedProduct.name} đang được niêm yết với giá ${formatVnd(matchedProduct.priceVnd)}${descPart} Anh/chị bấm “Đặt đơn” để chủ shop liên hệ xác nhận tình trạng hàng và phí vận chuyển nha! 🧾`;
-    }
-
-    // 2) Keyword rules ordered by server priority
-    for (const rule of state.botRules) {
-      const hit = (rule.keywords || []).some((kw) => {
-        const kNorm = normalizeText(kw);
-        return kNorm.length > 0 && normalizedMsg.includes(kNorm);
-      });
-      if (hit) return rule.answer;
-    }
-
-    return state.shop.fallbackReply;
+    chatMessages.appendChild(bubble);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
   }
 
   function renderSuggestions() {
@@ -816,47 +814,153 @@
       btn.textContent = label;
       btn.addEventListener("click", () => {
         chatInput.value = label;
-        sendCustomerMessage();
+        pendingMsgIdemKey = null;
+        void sendCustomerMessage();
       });
       box.appendChild(btn);
     });
   }
 
-  function toggleChat() {
+  async function ensureChatSession() {
+    if (chatSessionReady || chatInitializing) return;
+    chatInitializing = true;
+    typingIndicator.textContent = "Đang kết nối hộp chat…";
+    try {
+      const res = await fetch("/api/v1/public/chat/sessions", {
+        method: "POST",
+        credentials: "same-origin"
+      });
+      if (!res.ok) throw new Error("Session init failed");
+      const payload = await res.json();
+      const data = payload.data;
+      updateChatHeaderMode(data.session);
+      (data.messages || []).forEach(appendServerMessage);
+      latestChatCursor = data.latestCursor || latestChatCursor;
+      chatSessionReady = true;
+      renderSuggestions();
+    } catch {
+      typingIndicator.textContent = "Chưa kết nối được hộp chat. Hãy thử mở lại.";
+      return;
+    } finally {
+      chatInitializing = false;
+    }
+    typingIndicator.textContent = "";
+  }
+
+  async function pollNewChatMessages() {
+    if (!chatSessionReady || !chatWindow.classList.contains("mo") || document.hidden) {
+      return;
+    }
+    try {
+      const qs = new URLSearchParams({ limit: "50" });
+      if (latestChatCursor) qs.set("afterCursor", latestChatCursor);
+      const res = await fetch(`/api/v1/public/chat/sessions/current/messages?${qs.toString()}`, {
+        credentials: "same-origin"
+      });
+      if (res.status === 401) {
+        chatSessionReady = false;
+        await ensureChatSession();
+        return;
+      }
+      if (!res.ok) return;
+      const payload = await res.json();
+      if (payload.session) updateChatHeaderMode(payload.session);
+      (payload.data || []).forEach(appendServerMessage);
+      if (payload.latestCursor) latestChatCursor = payload.latestCursor;
+    } catch {
+      // Ignore transient poll errors
+    }
+  }
+
+  setInterval(() => {
+    void pollNewChatMessages();
+  }, 3500);
+
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) void pollNewChatMessages();
+  });
+
+  async function toggleChat() {
     const isOpen = chatWindow.classList.toggle("mo");
     const btn = document.getElementById("nut-chat");
     btn.textContent = isOpen ? "✕" : "💬";
     btn.setAttribute("aria-label", isOpen ? "Đóng hộp chat" : "Mở hộp chat");
-    if (isOpen && !chatOpenedOnce) {
-      chatOpenedOnce = true;
-      if (chatMessages.children.length === 0) {
-        appendChatMessage(
-          "bot",
-          `Dạ em chào anh/chị! 🤖 Em là ${state.shop.botName}, trợ lý của ${state.shop.name}. Anh/chị nhắn tên món để xem giá niêm yết, hoặc hỏi về cách đặt hàng, vận chuyển nha!`
-        );
-      }
-      renderSuggestions();
+    if (isOpen) {
+      await ensureChatSession();
+      await pollNewChatMessages();
+      chatInput.focus();
     }
-    if (isOpen) chatInput.focus();
   }
 
-  function sendCustomerMessage() {
+  chatInput.addEventListener("input", () => {
+    pendingMsgIdemKey = null;
+  });
+
+  async function sendCustomerMessage() {
     const text = chatInput.value.trim();
     if (!text) return;
-    chatInput.value = "";
-    appendChatMessage("khach", text);
-    const reply = computeBotReply(text);
-    typingIndicator.textContent = `${state.shop.botName} đang trả lời…`;
-    setTimeout(() => {
+    if (!chatSessionReady) {
+      await ensureChatSession();
+      if (!chatSessionReady) return;
+    }
+
+    if (!pendingMsgIdemKey) {
+      pendingMsgIdemKey = generateUuid();
+    }
+
+    chatSendBtn.disabled = true;
+    typingIndicator.textContent = "Đang gửi tin nhắn…";
+
+    try {
+      const res = await fetch("/api/v1/public/chat/sessions/current/messages", {
+        method: "POST",
+        credentials: "same-origin",
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": pendingMsgIdemKey
+        },
+        body: JSON.stringify({ body: text })
+      });
+
+      if (res.status === 401) {
+        chatSessionReady = false;
+        await ensureChatSession();
+        typingIndicator.textContent = "Phiên chat vừa được làm mới, vui lòng bấm gửi lại.";
+        return;
+      }
+
+      const payload = await res.json().catch(() => null);
+      if (!res.ok || !payload?.data) {
+        if (res.status === 400 || res.status === 409) {
+          pendingMsgIdemKey = null;
+        }
+        typingIndicator.textContent = payload?.error?.message || "Gửi tin chưa thành công, thử lại nhé.";
+        return;
+      }
+
+      chatInput.value = "";
+      pendingMsgIdemKey = null;
       typingIndicator.textContent = "";
-      appendChatMessage("bot", reply);
-    }, 350);
+      updateChatHeaderMode(payload.data.session);
+      (payload.data.messages || []).forEach(appendServerMessage);
+      if (payload.data.latestCursor) {
+        latestChatCursor = payload.data.latestCursor;
+      }
+    } catch {
+      typingIndicator.textContent = "Mạng chập chờn — bấm gửi lại để thử tiếp (không lo trùng tin).";
+    } finally {
+      chatSendBtn.disabled = false;
+    }
   }
 
-  document.getElementById("nut-chat").addEventListener("click", toggleChat);
-  document.getElementById("nut-gui-tin").addEventListener("click", sendCustomerMessage);
+  document.getElementById("nut-chat").addEventListener("click", () => {
+    void toggleChat();
+  });
+  chatSendBtn.addEventListener("click", () => {
+    void sendCustomerMessage();
+  });
   chatInput.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") sendCustomerMessage();
+    if (e.key === "Enter") void sendCustomerMessage();
   });
 
   void initStorefront();

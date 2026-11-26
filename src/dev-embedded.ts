@@ -13,14 +13,54 @@ import { seedDemoData } from "../prisma/seed.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, "..");
-const MIGRATION_SQL_PATH = path.join(
-  ROOT_DIR,
-  "prisma",
-  "migrations",
-  "20261126000000_init_m1",
-  "migration.sql"
-);
+const MIGRATIONS_DIR = path.join(ROOT_DIR, "prisma", "migrations");
 const PGLITE_DIR = path.join(ROOT_DIR, ".pglite", "dev-db");
+
+async function applyPendingEmbeddedMigrations(pglite: PGlite): Promise<void> {
+  await pglite.exec(`
+    CREATE TABLE IF NOT EXISTS "_embedded_migrations" (
+      "name" TEXT PRIMARY KEY,
+      "applied_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
+  `);
+
+  const appliedRows = await pglite.query<{ name: string }>(
+    `SELECT "name" FROM "_embedded_migrations";`
+  );
+  const applied = new Set(appliedRows.rows.map((r) => r.name));
+
+  // Backfill M1 marker if database was initialized before _embedded_migrations existed
+  if (!applied.has("20261126000000_init_m1")) {
+    const shopsCheck = await pglite.query<{ exists: boolean }>(
+      "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'shops') AS exists;"
+    );
+    if (shopsCheck.rows[0]?.exists) {
+      await pglite.query(
+        `INSERT INTO "_embedded_migrations" ("name") VALUES ($1) ON CONFLICT DO NOTHING;`,
+        ["20261126000000_init_m1"]
+      );
+      applied.add("20261126000000_init_m1");
+    }
+  }
+
+  const entries = await fs.readdir(MIGRATIONS_DIR, { withFileTypes: true });
+  const migrationDirs = entries
+    .filter((e) => e.isDirectory())
+    .map((e) => e.name)
+    .sort((a, b) => a.localeCompare(b));
+
+  for (const dirName of migrationDirs) {
+    if (applied.has(dirName)) continue;
+    const sqlPath = path.join(MIGRATIONS_DIR, dirName, "migration.sql");
+    const sql = await fs.readFile(sqlPath, "utf8");
+    await pglite.exec(sql);
+    await pglite.query(
+      `INSERT INTO "_embedded_migrations" ("name") VALUES ($1);`,
+      [dirName]
+    );
+    console.log(`Applied migration ${dirName} to local embedded PostgreSQL.`);
+  }
+}
 
 function buildParamStatus(name: string, value: string): Buffer {
   const payload = Buffer.from(`${name}\0${value}\0`, "utf8");
@@ -160,15 +200,7 @@ async function main(): Promise<void> {
 
   await fs.mkdir(path.dirname(PGLITE_DIR), { recursive: true });
   const pglite = await PGlite.create(PGLITE_DIR);
-
-  const tableCheck = await pglite.query<{ exists: boolean }>(
-    "SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'shops') AS exists;"
-  );
-  if (!tableCheck.rows[0]?.exists) {
-    const migrationSql = await fs.readFile(MIGRATION_SQL_PATH, "utf8");
-    await pglite.exec(migrationSql);
-    console.log("Initialized local embedded PostgreSQL schema from M1 migration.");
-  }
+  await applyPendingEmbeddedMigrations(pglite);
 
   const tcp = await startEmbeddedPostgresTcp(pglite, 5432);
   const connectionString = `postgresql://mino:change-me@127.0.0.1:${tcp.port}/mino_dev?sslmode=disable`;

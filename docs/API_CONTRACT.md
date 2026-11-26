@@ -137,13 +137,11 @@ Invalid transition returns 409; successful update and `order_events` insert happ
 - `GET /health/ready`: app can reach required database; no credentials or internals in body.
 - Do not expose detailed diagnostics publicly; infrastructure may use a protected/internal readiness check.
 
-## M2 endpoints — do not implement in M1
+## M2 endpoints — đã triển khai ở nhánh `feat/m2-chat-inbox`
 
-- `POST /public/chat/sessions`, `POST /public/chat/sessions/{id}/messages`.
-- `GET /admin/conversations`, `GET /admin/conversations/{id}/messages`.
-- `POST /admin/conversations/{id}/messages` for reply; `POST .../notes` for private note; `PATCH ...` for handoff state.
-
-Design these with per-session visitor authorization, message cursor, size limits and no cross-session ID access before enabling chat for real customers.
+- `POST /public/chat/sessions` (tạo hoặc nối lại phiên chat qua cookie `mino_visitor_chat` `HttpOnly`), `GET /public/chat/sessions/current/messages?afterCursor=&limit=`, `POST /public/chat/sessions/current/messages` (`Idempotency-Key` bắt buộc).
+- `GET /admin/conversations`, `GET /admin/conversations/{id}`, `GET /admin/conversations/{id}/messages`.
+- `POST /admin/conversations/{id}/messages` (trả lời khách + tự động chuyển `handlingMode = "human"`), `POST /admin/conversations/{id}/notes` (ghi chú nội bộ lưu tách bảng `chat_notes`), `PATCH /admin/conversations/{id}` (cập nhật trạng thái, bật/tắt bot, thông tin khách, đánh dấu đã đọc).
 
 ## Contract change rule
 

@@ -19,7 +19,8 @@
     "db:migrate:dev": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
     "db:seed": "tsx prisma/seed.ts",
-    "admin:create": "tsx src/cli/create-admin.ts"
+    "admin:create": "tsx src/cli/create-admin.ts",
+    "chat:prune": "tsx src/cli/prune-chat.ts"
   },
   "dependencies": {
     "@fastify/cookie": "^11.1.5",

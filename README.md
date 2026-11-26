@@ -10,13 +10,13 @@ Mino là ứng dụng bán hàng trực tuyến gọn nhẹ cho một cửa hàn
 
 | Trang / Thành phần | Dành cho | Chức năng |
 |---|---|---|
-| `public/index.html` | 🛒 Khách hàng | Trang bán hàng kết nối API: danh sách sản phẩm đang bán, bot trả lời theo từ khóa (không tự bịa tồn kho), đặt đơn COD có chống gửi trùng (`Idempotency-Key`) |
-| `public/admin.html` | 📦 Chủ shop | Trang quản trị đơn hàng (yêu cầu đăng nhập): tìm kiếm, lọc trạng thái, xem snapshot sản phẩm, nhập phí ship khi xác nhận đơn và theo dõi lịch sử xử lý |
+| `public/index.html` | 🛒 Khách hàng | Trang bán hàng kết nối API: danh sách sản phẩm đang bán, Web Chat lưu trên server (hỗ trợ cả bot và chủ shop trả lời trực tiếp), đặt đơn COD có chống gửi trùng (`Idempotency-Key`) |
+| `public/admin.html` | 📦 Chủ shop | Bảng điều khiển 2 chế độ (yêu cầu đăng nhập): **Đơn hàng COD** và **Hộp thư Chat (Inbox)** có tiếp quản (human takeover), ghi chú nội bộ tách biệt và tự khớp đơn theo SĐT |
 | `public/caidat.html` | ⚙️ Chủ shop | Cài đặt cửa hàng (yêu cầu đăng nhập): cập nhật tên/liên hệ shop, thêm/sửa/ẩn sản phẩm và quản lý bảng luật từ khóa của bot |
 | `public/huong-dan.html` | 📘 Mọi người | Hướng dẫn khởi tạo môi trường, tạo tài khoản chủ shop và quy trình xử lý đơn COD |
 | `src/` + `prisma/` | 🖥️ Backend | Fastify API (`/api/v1`), xác thực phiên cookie `HttpOnly` + CSRF/Origin, Prisma ORM và schema/migration PostgreSQL |
 
-> **Phạm vi giai đoạn sau (chưa kích hoạt ở M1):** Inbox chat trực tuyến dùng chung (M2) và kết nối webhook Facebook Messenger / Zalo OA (M3).
+> **Phạm vi giai đoạn sau (chưa kích hoạt ở M2):** Kết nối webhook Facebook Messenger / Zalo OA (M3) và đa cửa hàng / AI có kiểm soát (M4).
 
 ---
 

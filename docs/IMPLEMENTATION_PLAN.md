@@ -113,13 +113,13 @@ M0 Chốt quyết định → M1 Nền tảng + đơn COD dùng chung → Releas
 
 ## M2 — Web chat và inbox dùng chung
 
-- [ ] Thêm `chat_sessions`, `messages`, `chat_session_events`; giữ payload plain text, giới hạn kích thước.
-- [ ] Cấp visitor session token ngẫu nhiên, lưu hash phía server; chỉ cho phép visitor đọc/gửi trong phiên của mình.
-- [ ] Gửi message vào API; bot trả lời dùng rule/config cùng nguồn authoritative.
-- [ ] Admin xem inbox, lọc trạng thái, trả lời; phản hồi chủ shop hiển thị lại qua polling ngắn ban đầu.
-- [ ] Ghi note nội bộ tách biệt với message gửi khách; quyền truy cập admin bắt buộc.
-- [ ] Thêm handoff: new/open/waiting_customer/waiting_shop/closed; không thông báo bot khi admin đang takeover.
-- [ ] Thêm pagination và retention policy cho message sau khi chủ shop duyệt.
+- [x] Thêm `chat_sessions`, `chat_messages`, `chat_notes`, `chat_session_events`; giữ payload plain text, giới hạn kích thước.
+- [x] Cấp visitor session token ngẫu nhiên (`mino_visitor_chat` `HttpOnly`), lưu hash phía server; chỉ cho phép visitor đọc/gửi trong phiên của mình.
+- [x] Gửi message vào API; bot trả lời dùng rule/config cùng nguồn authoritative.
+- [x] Admin xem inbox, lọc trạng thái, trả lời; phản hồi chủ shop hiển thị lại qua polling ngắn ban đầu.
+- [x] Ghi note nội bộ tách biệt (`chat_notes`) với message gửi khách; quyền truy cập admin bắt buộc.
+- [x] Thêm handoff: `open`/`waiting_customer`/`waiting_shop`/`closed` + `handlingMode` (`bot`/`human`); không để bot trả lời xen ngang khi admin đang takeover.
+- [x] Thêm pagination và CLI retention (`npm run chat:prune` theo `CHAT_RETENTION_DAYS` sau khi chủ shop duyệt).
 
 **Cổng M2:** hai trình duyệt khác nhau trao đổi được trong cùng phiên; visitor A không thể truy cập session B; trả lời/ghi chú phân biệt đúng.
 

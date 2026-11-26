@@ -33,6 +33,37 @@ enum OrderStatus {
   @@map("order_status")
 }
 
+enum ChatChannel {
+  web
+
+  @@map("chat_channel")
+}
+
+enum ChatSessionStatus {
+  open
+  waiting_shop
+  waiting_customer
+  closed
+
+  @@map("chat_session_status")
+}
+
+enum ChatHandlingMode {
+  bot
+  human
+
+  @@map("chat_handling_mode")
+}
+
+enum ChatSenderType {
+  customer
+  bot
+  admin
+  system
+
+  @@map("chat_sender_type")
+}
+
 model Shop {
   id            String   @id @default(uuid()) @db.Uuid
   name          String   @db.VarChar(120)
@@ -45,12 +76,16 @@ model Shop {
   createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  adminUsers AdminUser[]
-  products   Product[]
-  botRules   BotRule[]
-  orders     Order[]
-  orderItems OrderItem[]
-  orderEvents OrderEvent[]
+  adminUsers         AdminUser[]
+  products           Product[]
+  botRules           BotRule[]
+  orders             Order[]
+  orderItems         OrderItem[]
+  orderEvents        OrderEvent[]
+  chatSessions       ChatSession[]
+  chatMessages       ChatMessage[]
+  chatNotes          ChatNote[]
+  chatSessionEvents  ChatSessionEvent[]
 
   @@map("shops")
 }
@@ -65,9 +100,12 @@ model AdminUser {
   createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  shop        Shop           @relation(fields: [shopId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  sessions    AdminSession[]
-  orderEvents OrderEvent[]
+  shop              Shop               @relation(fields: [shopId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  sessions          AdminSession[]
+  orderEvents       OrderEvent[]
+  chatMessages      ChatMessage[]
+  chatNotes         ChatNote[]
+  chatSessionEvents ChatSessionEvent[]
 
   @@unique([shopId, emailNormalized], map: "admin_users_shop_email_key")
   @@map("admin_users")
@@ -189,4 +227,88 @@ model OrderEvent {
 
   @@index([orderId, createdAt], map: "order_events_order_created_idx")
   @@map("order_events")
+}
+
+model ChatSession {
+  id                 String            @id @default(uuid()) @db.Uuid
+  shopId             String            @map("shop_id") @db.Uuid
+  channel            ChatChannel       @default(web)
+  visitorTokenHash   Bytes?            @unique(map: "chat_sessions_visitor_token_hash_key") @map("visitor_token_hash") @db.ByteA
+  visitorName        String?           @map("visitor_name") @db.VarChar(120)
+  visitorPhone       String?           @map("visitor_phone") @db.VarChar(32)
+  visitorPhoneNorm   String?           @map("visitor_phone_norm") @db.VarChar(32)
+  status             ChatSessionStatus @default(open)
+  handlingMode       ChatHandlingMode  @default(bot) @map("handling_mode")
+  unreadForShop      Int               @default(0) @map("unread_for_shop")
+  lastMessageAt      DateTime          @default(now()) @map("last_message_at") @db.Timestamptz(6)
+  lastMessagePreview String?           @map("last_message_preview") @db.VarChar(160)
+  expiresAt          DateTime          @map("expires_at") @db.Timestamptz(6)
+  closedAt           DateTime?         @map("closed_at") @db.Timestamptz(6)
+  createdAt          DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  shop     Shop               @relation(fields: [shopId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  messages ChatMessage[]
+  notes    ChatNote[]
+  events   ChatSessionEvent[]
+
+  @@unique([id, shopId], map: "chat_sessions_id_shop_key")
+  @@index([shopId, lastMessageAt(sort: Desc), id(sort: Desc)], map: "chat_sessions_shop_last_msg_idx")
+  @@index([shopId, status, lastMessageAt(sort: Desc), id(sort: Desc)], map: "chat_sessions_shop_status_last_msg_idx")
+  @@index([shopId, visitorPhoneNorm], map: "chat_sessions_shop_phone_norm_idx")
+  @@map("chat_sessions")
+}
+
+model ChatMessage {
+  id                 String         @id @default(uuid()) @db.Uuid
+  shopId             String         @map("shop_id") @db.Uuid
+  chatSessionId      String         @map("chat_session_id") @db.Uuid
+  senderType         ChatSenderType @map("sender_type")
+  actorAdminUserId   String?        @map("actor_admin_user_id") @db.Uuid
+  body               String         @db.VarChar(2000)
+  idempotencyKey     String?        @map("idempotency_key") @db.VarChar(128)
+  requestFingerprint Bytes?         @map("request_fingerprint") @db.ByteA
+  providerMessageId  String?        @map("provider_message_id") @db.VarChar(128)
+  createdAt          DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  shop       Shop        @relation(fields: [shopId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  session    ChatSession @relation(fields: [chatSessionId, shopId], references: [id, shopId], onDelete: Restrict, onUpdate: Restrict)
+  actorAdmin AdminUser?  @relation(fields: [actorAdminUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@unique([chatSessionId, idempotencyKey], map: "chat_messages_session_idem_key")
+  @@index([chatSessionId, createdAt, id], map: "chat_messages_session_created_idx")
+  @@map("chat_messages")
+}
+
+model ChatNote {
+  id                String   @id @default(uuid()) @db.Uuid
+  shopId            String   @map("shop_id") @db.Uuid
+  chatSessionId     String   @map("chat_session_id") @db.Uuid
+  authorAdminUserId String   @map("author_admin_user_id") @db.Uuid
+  body              String   @db.VarChar(2000)
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  shop        Shop        @relation(fields: [shopId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  session     ChatSession @relation(fields: [chatSessionId, shopId], references: [id, shopId], onDelete: Restrict, onUpdate: Restrict)
+  authorAdmin AdminUser   @relation(fields: [authorAdminUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([chatSessionId, createdAt, id], map: "chat_notes_session_created_idx")
+  @@map("chat_notes")
+}
+
+model ChatSessionEvent {
+  id               String   @id @default(uuid()) @db.Uuid
+  shopId           String   @map("shop_id") @db.Uuid
+  chatSessionId    String   @map("chat_session_id") @db.Uuid
+  actorAdminUserId String?  @map("actor_admin_user_id") @db.Uuid
+  eventType        String   @map("event_type") @db.VarChar(64)
+  detail           String?  @db.VarChar(500)
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  shop       Shop        @relation(fields: [shopId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  session    ChatSession @relation(fields: [chatSessionId, shopId], references: [id, shopId], onDelete: Restrict, onUpdate: Restrict)
+  actorAdmin AdminUser?  @relation(fields: [actorAdminUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([chatSessionId, createdAt, id], map: "chat_session_events_session_created_idx")
+  @@map("chat_session_events")
 }

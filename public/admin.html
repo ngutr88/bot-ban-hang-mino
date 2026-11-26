@@ -3,13 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Quản lý đơn hàng COD — Quản trị Mino</title>
-<meta name="description" content="Trang quản trị đơn hàng COD của chủ shop Mino.">
+<title>Quản trị Đơn hàng &amp; Hộp thư Chat — Mino</title>
+<meta name="description" content="Trang quản trị đơn hàng COD và hộp thư chat trực tuyến của chủ shop Mino.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📦</text></svg>">
 <style>
   :root{
     --bg:#eef2f9; --card:#ffffff; --vien:#e4eaf3;
-    --chu:#1e2a3b; --chu-mo:#6b7a90; --chu-nhat:#94a3b8;
+    --chu:#1e2a3b; --chu-mo:#6b7a90;
     --xanh:#2e6cf6; --xanh-nen:#e8f0fe; --xanh-dam:#1d4ed8;
     --tim:#8b5cf6;
     --luc:#15803d; --luc-nen:#e5f6ec;
@@ -25,7 +25,7 @@
 
   .topbar{
     height:56px;background:var(--card);border-bottom:1px solid var(--vien);
-    display:flex;align-items:center;justify-content:space-between;padding:0 20px;gap:12px;
+    display:flex;align-items:center;justify-content:space-between;padding:0 20px;gap:12px;flex-wrap:wrap;
   }
   .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:15px}
   .brand .ico{
@@ -43,23 +43,51 @@
   .btn:disabled{opacity:.6;cursor:not-allowed}
   .btn-chinh{background:linear-gradient(135deg,var(--xanh),var(--tim));color:#fff}
   .btn-vien{background:#fff;border:1px solid var(--vien);color:var(--chu)}
+  .btn-vang{background:var(--cam-nen);border:1px solid #fde68a;color:var(--cam)}
 
-  .m2-banner{
-    margin:14px 20px 0;padding:10px 16px;background:#fffbeb;border:1px solid #fde68a;
-    border-radius:12px;color:#92400e;font-size:13px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;
+  .workspace-bar{
+    max-width:1440px;margin:14px auto 0;padding:0 20px;
+    display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+  }
+  .mode-switch{
+    display:inline-flex;background:var(--card);border:1px solid var(--vien);border-radius:12px;padding:4px;gap:4px;
+  }
+  .mode-switch button{
+    border:none;background:transparent;padding:8px 16px;border-radius:9px;font:inherit;
+    font-weight:700;color:var(--chu-mo);cursor:pointer;display:inline-flex;align-items:center;gap:6px;
+  }
+  .mode-switch button.active{
+    background:var(--xanh);color:#fff;
+  }
+  .unread-pill{
+    background:var(--do);color:#fff;font-size:11px;font-weight:800;border-radius:99px;
+    padding:1px 7px;min-width:20px;text-align:center;
   }
 
-  .layout{
+  .layout-orders{
     display:grid;grid-template-columns:380px minmax(0,1fr);gap:16px;
-    padding:14px 20px 24px;max-width:1400px;margin:0 auto;
+    padding:14px 20px 24px;max-width:1440px;margin:0 auto;
   }
-  @media (max-width:960px){.layout{grid-template-columns:1fr}}
+  .layout-inbox{
+    display:grid;grid-template-columns:340px minmax(0,1fr) 330px;gap:16px;
+    padding:14px 20px 24px;max-width:1440px;margin:0 auto;
+  }
+  @media (max-width:1120px){
+    .layout-inbox{grid-template-columns:320px minmax(0,1fr)}
+    .inbox-side-col{grid-column:1/-1}
+  }
+  @media (max-width:900px){
+    .layout-orders,.layout-inbox{grid-template-columns:1fr}
+  }
 
   .panel{
     background:var(--card);border:1px solid var(--vien);border-radius:14px;
     display:flex;flex-direction:column;overflow:hidden;
   }
-  .panel-head{padding:14px 16px;border-bottom:1px solid var(--vien)}
+  .panel-head{
+    padding:13px 16px;border-bottom:1px solid var(--vien);
+    display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+  }
   .panel-head h2{font-size:15px;font-weight:800}
 
   .filters{padding:12px 14px;border-bottom:1px solid var(--vien);display:flex;flex-direction:column;gap:8px}
@@ -76,26 +104,26 @@
   }
   .status-tabs button.active{background:var(--xanh-nen);border-color:var(--xanh);color:var(--xanh-dam)}
 
-  .order-list{max-height:70vh;overflow-y:auto;padding:8px}
-  .order-row{
+  .scroll-list{max-height:68vh;overflow-y:auto;padding:8px}
+  .list-row{
     padding:11px 12px;border-radius:11px;border:1px solid transparent;cursor:pointer;margin-bottom:6px;
   }
-  .order-row:hover{background:#f8faff;border-color:var(--vien)}
-  .order-row.active{background:var(--xanh-nen);border-color:#bfdbfe}
-  .order-row-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
-  .order-no{font-weight:800;font-size:13.5px}
-  .order-meta{font-size:12.5px;color:var(--chu-mo);margin-top:3px;display:flex;justify-content:space-between;gap:8px}
+  .list-row:hover{background:#f8faff;border-color:var(--vien)}
+  .list-row.active{background:var(--xanh-nen);border-color:#bfdbfe}
+  .row-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .row-title{font-weight:800;font-size:13.5px}
+  .row-meta{font-size:12.3px;color:var(--chu-mo);margin-top:3px;display:flex;justify-content:space-between;gap:8px}
 
-  .badge{
-    display:inline-block;padding:2px 9px;border-radius:99px;font-size:11.5px;font-weight:700;
-  }
-  .st-new{background:var(--cam-nen);color:var(--cam)}
-  .st-confirmed,.st-preparing,.st-shipping{background:var(--xanh-nen);color:var(--xanh-dam)}
+  .badge{display:inline-block;padding:2px 9px;border-radius:99px;font-size:11.5px;font-weight:700}
+  .st-new,.st-waiting_shop{background:var(--cam-nen);color:var(--cam)}
+  .st-confirmed,.st-preparing,.st-shipping,.st-open,.st-waiting_customer{background:var(--xanh-nen);color:var(--xanh-dam)}
   .st-completed{background:var(--luc-nen);color:var(--luc)}
-  .st-cancelled{background:var(--do-nen);color:var(--do)}
+  .st-cancelled,.st-closed{background:#eef2f7;color:var(--chu-mo)}
+  .mode-human{background:#ede9fe;color:#6d28d9}
+  .mode-bot{background:var(--luc-nen);color:var(--luc)}
 
   .detail-body{padding:18px 20px}
-  .empty-state{padding:48px 20px;text-align:center;color:var(--chu-mo)}
+  .empty-state{padding:44px 20px;text-align:center;color:var(--chu-mo)}
   .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0}
   @media (max-width:640px){.info-grid{grid-template-columns:1fr}}
   .info-box{background:#f8faff;border:1px solid var(--vien);border-radius:12px;padding:12px 14px}
@@ -121,17 +149,49 @@
   @media (max-width:640px){.form-row{grid-template-columns:1fr}}
   label{display:block;font-weight:700;font-size:12.5px;margin-bottom:4px}
 
-  .msg-box{display:none;padding:9px 12px;border-radius:9px;font-weight:600;margin:10px 0;font-size:13px}
+  .msg-box{display:none;padding:9px 12px;border-radius:9px;font-weight:600;margin:8px 0;font-size:13px}
   .msg-box.ok{display:block;background:var(--luc-nen);color:var(--luc)}
   .msg-box.loi{display:block;background:var(--do-nen);color:var(--do)}
 
-  .timeline{margin-top:18px}
-  .timeline h3{font-size:14px;margin-bottom:8px}
+  .timeline{margin-top:16px}
+  .timeline h3{font-size:13.5px;margin-bottom:8px}
   .ev-item{
-    padding:9px 12px;border-left:3px solid var(--xanh);background:#f8faff;
-    border-radius:0 9px 9px 0;margin-bottom:8px;font-size:12.8px;
+    padding:8px 11px;border-left:3px solid var(--xanh);background:#f8faff;
+    border-radius:0 9px 9px 0;margin-bottom:7px;font-size:12.5px;
   }
   .ev-time{color:var(--chu-mo);font-size:11.5px}
+
+  /* INBOX THREAD */
+  .chat-thread{
+    height:52vh;overflow-y:auto;padding:16px;background:#fbfcfe;
+    display:flex;flex-direction:column;gap:10px;
+  }
+  .chat-msg{max-width:78%;display:flex;flex-direction:column}
+  .chat-msg.from-customer{align-self:flex-start}
+  .chat-msg.from-shop{align-self:flex-end}
+  .chat-bubble{
+    padding:10px 13px;border-radius:14px;font-size:13.5px;white-space:pre-line;word-break:break-word;
+  }
+  .from-customer .chat-bubble{background:#f1f5f9;border-bottom-left-radius:4px}
+  .from-shop.is-bot .chat-bubble{background:#eef3fe;border-bottom-right-radius:4px}
+  .from-shop.is-admin .chat-bubble{background:#dcfce7;border:1px solid #bbf7d0;border-bottom-right-radius:4px}
+  .chat-meta{font-size:11px;color:var(--chu-mo);margin-top:3px}
+
+  .composer{border-top:1px solid var(--vien);padding:12px 16px;background:#fff}
+  .composer-tabs{display:flex;gap:10px;margin-bottom:8px}
+  .composer-tabs button{
+    padding:5px 12px;border-radius:8px;border:1px solid var(--vien);background:#f8faff;
+    font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;color:var(--chu-mo);
+  }
+  .composer-tabs button.active-reply{background:var(--xanh-nen);border-color:var(--xanh);color:var(--xanh-dam)}
+  .composer-tabs button.active-note{background:var(--cam-nen);border-color:#f59e0b;color:var(--cam)}
+  .composer-row{display:flex;gap:8px;align-items:flex-end}
+  .composer-row textarea{resize:vertical;min-height:54px}
+
+  .note-card{
+    background:#fffbeb;border:1px dashed #f59e0b;border-radius:10px;padding:9px 11px;
+    margin-bottom:8px;font-size:12.5px;color:#78350f;
+  }
 
   .phu-login{
     position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:100;
@@ -149,7 +209,7 @@
 <header class="topbar">
   <div class="brand">
     <span class="ico">📦</span>
-    <span>Quản lý đơn hàng COD — Mino</span>
+    <span>Bảng điều khiển Chủ shop — Mino</span>
   </div>
   <nav class="top-nav" aria-label="Điều hướng quản trị">
     <a href="index.html">🛒 Trang bán hàng</a>
@@ -161,48 +221,102 @@
 </header>
 
 <div id="admin-shell" style="display:none">
-  <div class="m2-banner">
-    <span>ℹ️ <b>Phạm vi M1:</b> Quản lý đơn hàng COD tập trung từ máy chủ. Hộp thư chat trực tuyến &amp; kết nối Messenger/Zalo thuộc giai đoạn M2/M3 (chưa kích hoạt).</span>
-    <button type="button" class="btn btn-vien" id="btn-refresh" style="padding:4px 10px;font-size:12px">↻ Làm mới danh sách</button>
+  <div class="workspace-bar">
+    <div class="mode-switch" role="tablist" aria-label="Chế độ quản trị">
+      <button type="button" id="tab-mode-orders" class="active" role="tab" aria-selected="true">📦 Đơn hàng COD</button>
+      <button type="button" id="tab-mode-inbox" role="tab" aria-selected="false">
+        💬 Hộp thư Chat (Web)
+        <span id="inbox-unread-badge" class="unread-pill" style="display:none">0</span>
+      </button>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--chu-mo)">
+      <span>Kênh ngoài (Messenger / Zalo OA): dự kiến M3</span>
+      <button type="button" class="btn btn-vien" id="btn-refresh">↻ Làm mới</button>
+    </div>
   </div>
 
-  <main class="layout">
-    <!-- DANH SÁCH ĐƠN -->
+  <!-- ==================== VIEW 1: COD ORDERS ==================== -->
+  <main id="view-orders" class="layout-orders">
     <section class="panel" aria-label="Danh sách đơn hàng">
-      <div class="panel-head">
-        <h2>Danh sách đơn hàng</h2>
-      </div>
+      <div class="panel-head"><h2>Danh sách đơn hàng COD</h2></div>
       <div class="filters">
-        <form id="form-search" class="search-row">
-          <input type="text" id="inp-q" placeholder="Tìm mã đơn, tên hoặc SĐT người nhận…">
+        <form id="form-search-orders" class="search-row">
+          <input type="text" id="inp-order-q" placeholder="Tìm mã đơn, tên hoặc SĐT người nhận…">
           <button type="submit" class="btn btn-vien">Tìm</button>
         </form>
-        <div class="status-tabs" id="status-tabs"></div>
+        <div class="status-tabs" id="order-status-tabs"></div>
       </div>
-      <div class="order-list" id="order-list"></div>
-      <div style="padding:10px;border-top:1px solid var(--vien);display:none" id="load-more-wrap">
-        <button type="button" class="btn btn-vien" id="btn-load-more" style="width:100%">Tải thêm đơn cũ hơn</button>
+      <div class="scroll-list" id="order-list"></div>
+      <div style="padding:10px;border-top:1px solid var(--vien);display:none" id="orders-more-wrap">
+        <button type="button" class="btn btn-vien" id="btn-orders-more" style="width:100%">Tải thêm đơn cũ hơn</button>
       </div>
     </section>
 
-    <!-- CHI TIẾT ĐƠN -->
     <section class="panel" aria-label="Chi tiết đơn hàng">
-      <div class="panel-head">
-        <h2 id="detail-heading">Chi tiết đơn hàng</h2>
-      </div>
-      <div id="detail-container" class="detail-body">
-        <div class="empty-state">Chọn một đơn hàng ở cột bên trái để xem chi tiết và xử lý trạng thái.</div>
+      <div class="panel-head"><h2 id="order-detail-heading">Chi tiết đơn hàng</h2></div>
+      <div id="order-detail-container" class="detail-body">
+        <div class="empty-state">Chọn một đơn hàng ở cột bên trái để xem chi tiết và cập nhật trạng thái.</div>
       </div>
     </section>
+  </main>
+
+  <!-- ==================== VIEW 2: WEB CHAT INBOX (M2) ==================== -->
+  <main id="view-inbox" class="layout-inbox" style="display:none">
+    <!-- Col 1: Conversation list -->
+    <section class="panel" aria-label="Danh sách hội thoại">
+      <div class="panel-head"><h2>Hộp thư Website Chat</h2></div>
+      <div class="filters">
+        <form id="form-search-conv" class="search-row">
+          <input type="text" id="inp-conv-q" placeholder="Tìm tên, SĐT, nội dung chat…">
+          <button type="submit" class="btn btn-vien">Tìm</button>
+        </form>
+        <div class="status-tabs" id="conv-status-tabs"></div>
+      </div>
+      <div class="scroll-list" id="conv-list"></div>
+      <div style="padding:10px;border-top:1px solid var(--vien);display:none" id="conv-more-wrap">
+        <button type="button" class="btn btn-vien" id="btn-conv-more" style="width:100%">Tải thêm hội thoại</button>
+      </div>
+    </section>
+
+    <!-- Col 2: Active chat thread & composer -->
+    <section class="panel" aria-label="Khung trò chuyện">
+      <div class="panel-head" id="conv-thread-head">
+        <h2>Chọn hội thoại</h2>
+      </div>
+      <div class="chat-thread" id="conv-messages">
+        <div class="empty-state">Chọn một phiên chat bên trái để xem tin nhắn và phản hồi khách hàng.</div>
+      </div>
+      <div class="composer" id="conv-composer" style="display:none">
+        <div class="composer-tabs">
+          <button type="button" id="btn-compose-reply" class="active-reply">💬 Gửi tin cho khách</button>
+          <button type="button" id="btn-compose-note">📌 Ghi chú nội bộ (chỉ shop thấy)</button>
+        </div>
+        <form id="form-compose">
+          <div class="composer-row">
+            <textarea id="inp-compose-body" rows="2" maxlength="2000" placeholder="Nhập tin nhắn trả lời khách (tự động chuyển sang chế độ Chủ shop tiếp quản)…"></textarea>
+            <button type="submit" class="btn btn-chinh" id="btn-compose-send">Gửi</button>
+          </div>
+          <div id="msg-compose" class="msg-box" role="alert"></div>
+        </form>
+      </div>
+    </section>
+
+    <!-- Col 3: Visitor profile, related COD orders, internal notes -->
+    <aside class="panel inbox-side-col" aria-label="Thông tin khách &amp; ghi chú nội bộ">
+      <div class="panel-head"><h2>Khách hàng &amp; Ghi chú nội bộ</h2></div>
+      <div class="detail-body" id="conv-side-body">
+        <div class="empty-state">Thông tin liên hệ, đơn hàng liên quan và ghi chú nội bộ sẽ hiển thị tại đây.</div>
+      </div>
+    </aside>
   </main>
 </div>
 
 <!-- LOGIN MODAL -->
 <div class="phu-login" id="login-modal" role="dialog" aria-modal="true" aria-labelledby="login-title">
   <div class="hop-login">
-    <h2 id="login-title" style="font-size:1.2rem;margin-bottom:4px">🔐 Đăng nhập quản trị đơn hàng</h2>
+    <h2 id="login-title" style="font-size:1.2rem;margin-bottom:4px">🔐 Đăng nhập quản trị</h2>
     <p id="login-desc" style="color:var(--chu-mo);font-size:13px;margin-bottom:14px">
-      Chỉ chủ shop đã đăng nhập mới có quyền xem và xử lý đơn hàng.
+      Chỉ chủ shop đã đăng nhập mới có quyền xem đơn hàng và hộp thư khách hàng.
     </p>
     <form id="form-login">
       <label for="login-email">Email</label>
@@ -217,7 +331,7 @@
 
 <script>
 (() => {
-  const STATUS_LABELS = {
+  const ORDER_STATUS_LABELS = {
     new: "Mới",
     confirmed: "Đã xác nhận",
     preparing: "Đang chuẩn bị",
@@ -226,7 +340,7 @@
     cancelled: "Đã hủy"
   };
 
-  const ALLOWED_TRANSITIONS = {
+  const ALLOWED_ORDER_TRANSITIONS = {
     new: ["confirmed", "cancelled"],
     confirmed: ["preparing", "cancelled"],
     preparing: ["shipping", "cancelled"],
@@ -235,12 +349,46 @@
     cancelled: []
   };
 
+  const CONV_STATUS_LABELS = {
+    open: "Đang mở",
+    waiting_shop: "Chờ shop",
+    waiting_customer: "Chờ khách",
+    closed: "Đã đóng"
+  };
+
   let csrfToken = null;
-  let currentFilterStatus = "";
-  let currentQuery = "";
+  let activeWorkspaceMode = "orders"; // "orders" | "inbox"
+
+  // Orders state
+  let orderFilterStatus = "";
+  let orderQuery = "";
   let orders = [];
-  let nextCursor = null;
+  let ordersNextCursor = null;
   let selectedOrderId = null;
+
+  // Inbox state
+  let convFilterStatus = "";
+  let convQuery = "";
+  let conversations = [];
+  let convNextCursor = null;
+  let selectedConvId = null;
+  let selectedConvSession = null;
+  let convLatestMsgCursor = null;
+  const seenAdminMsgIds = new Set();
+  let composeMode = "reply"; // "reply" | "note"
+  let pendingReplyIdemKey = null;
+
+  function generateUuid() {
+    if (window.crypto && typeof window.crypto.randomUUID === "function") {
+      return window.crypto.randomUUID();
+    }
+    const bytes = new Uint8Array(16);
+    window.crypto.getRandomValues(bytes);
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const hex = [...bytes].map(b => b.toString(16).padStart(2, "0")).join("");
+    return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`;
+  }
 
   function formatVnd(vndStr) {
     if (vndStr === null || vndStr === undefined) return null;
@@ -299,23 +447,50 @@
     if (res.status === 401 && path !== "/api/v1/admin/session") {
       csrfToken = null;
       openLoginModal(
-        "Phiên làm việc đã hết hạn. Vui lòng đăng nhập lại — ghi chú hoặc phí ship bạn đang nhập vẫn được giữ nguyên."
+        "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại — nội dung bạn đang soạn thảo vẫn được giữ nguyên."
       );
     }
 
     return {
       ok: res.ok,
       status: res.status,
+      raw: payload,
       data: payload?.data ?? null,
       nextCursor: payload?.nextCursor ?? null,
       errorMessage: payload?.error?.message || "Yêu cầu không thành công."
     };
   }
 
-  function renderStatusTabs() {
-    const box = document.getElementById("status-tabs");
+  function updateUnreadBadge(count) {
+    const badge = document.getElementById("inbox-unread-badge");
+    if (typeof count === "number" && count > 0) {
+      badge.textContent = String(count);
+      badge.style.display = "inline-block";
+    } else {
+      badge.style.display = "none";
+    }
+  }
+
+  function switchWorkspace(mode) {
+    activeWorkspaceMode = mode;
+    const isOrders = mode === "orders";
+    document.getElementById("tab-mode-orders").classList.toggle("active", isOrders);
+    document.getElementById("tab-mode-inbox").classList.toggle("active", !isOrders);
+    document.getElementById("view-orders").style.display = isOrders ? "grid" : "none";
+    document.getElementById("view-inbox").style.display = isOrders ? "none" : "grid";
+    if (!isOrders && conversations.length === 0) {
+      void fetchConversations(true);
+    }
+  }
+
+  document.getElementById("tab-mode-orders").addEventListener("click", () => switchWorkspace("orders"));
+  document.getElementById("tab-mode-inbox").addEventListener("click", () => switchWorkspace("inbox"));
+
+  /* ==================== ORDERS MODULE ==================== */
+  function renderOrderStatusTabs() {
+    const box = document.getElementById("order-status-tabs");
     box.replaceChildren();
-    const items = [
+    [
       ["", "Tất cả"],
       ["new", "Mới"],
       ["confirmed", "Đã xác nhận"],
@@ -323,15 +498,14 @@
       ["shipping", "Đang giao"],
       ["completed", "Hoàn tất"],
       ["cancelled", "Đã hủy"]
-    ];
-    items.forEach(([code, label]) => {
+    ].forEach(([code, label]) => {
       const btn = document.createElement("button");
       btn.type = "button";
-      btn.className = currentFilterStatus === code ? "active" : "";
+      btn.className = orderFilterStatus === code ? "active" : "";
       btn.textContent = label;
       btn.addEventListener("click", () => {
-        currentFilterStatus = code;
-        renderStatusTabs();
+        orderFilterStatus = code;
+        renderOrderStatusTabs();
         void fetchOrders(true);
       });
       box.appendChild(btn);
@@ -341,7 +515,6 @@
   function renderOrderList() {
     const listEl = document.getElementById("order-list");
     listEl.replaceChildren();
-
     if (orders.length === 0) {
       const empty = document.createElement("div");
       empty.className = "empty-state";
@@ -350,22 +523,20 @@
     } else {
       orders.forEach((o) => {
         const row = document.createElement("div");
-        row.className = `order-row ${selectedOrderId === o.id ? "active" : ""}`;
+        row.className = `list-row ${selectedOrderId === o.id ? "active" : ""}`;
 
         const top = document.createElement("div");
-        top.className = "order-row-top";
-
+        top.className = "row-top";
         const noEl = document.createElement("span");
-        noEl.className = "order-no";
+        noEl.className = "row-title";
         noEl.textContent = o.orderNo;
-
         const badge = document.createElement("span");
         badge.className = `badge st-${o.status}`;
-        badge.textContent = STATUS_LABELS[o.status] || o.status;
+        badge.textContent = ORDER_STATUS_LABELS[o.status] || o.status;
         top.append(noEl, badge);
 
         const meta1 = document.createElement("div");
-        meta1.className = "order-meta";
+        meta1.className = "row-meta";
         const who = document.createElement("span");
         who.textContent = `${o.recipientName} · ${o.recipientPhone}`;
         const money = document.createElement("b");
@@ -373,7 +544,7 @@
         meta1.append(who, money);
 
         const meta2 = document.createElement("div");
-        meta2.className = "order-meta";
+        meta2.className = "row-meta";
         const timeEl = document.createElement("span");
         timeEl.textContent = formatVnDateTime(o.createdAt);
         const shipState = document.createElement("span");
@@ -389,25 +560,24 @@
         listEl.appendChild(row);
       });
     }
-
-    document.getElementById("load-more-wrap").style.display = nextCursor ? "block" : "none";
+    document.getElementById("orders-more-wrap").style.display = ordersNextCursor ? "block" : "none";
   }
 
   async function fetchOrders(reset = true) {
     if (reset) {
       orders = [];
-      nextCursor = null;
+      ordersNextCursor = null;
     }
     const qs = new URLSearchParams({ limit: "25" });
-    if (currentFilterStatus) qs.set("status", currentFilterStatus);
-    if (currentQuery) qs.set("q", currentQuery);
-    if (!reset && nextCursor) qs.set("cursor", nextCursor);
+    if (orderFilterStatus) qs.set("status", orderFilterStatus);
+    if (orderQuery) qs.set("q", orderQuery);
+    if (!reset && ordersNextCursor) qs.set("cursor", ordersNextCursor);
 
     const r = await apiRequest(`/api/v1/admin/orders?${qs.toString()}`);
     if (!r.ok) return;
 
     orders = reset ? (r.data || []) : [...orders, ...(r.data || [])];
-    nextCursor = r.nextCursor;
+    ordersNextCursor = r.nextCursor;
     renderOrderList();
 
     if (reset && orders.length > 0 && !selectedOrderId) {
@@ -418,12 +588,10 @@
   }
 
   function renderOrderDetail(order) {
-    const container = document.getElementById("detail-container");
+    const container = document.getElementById("order-detail-container");
     container.replaceChildren();
+    document.getElementById("order-detail-heading").textContent = `Đơn hàng ${order.orderNo}`;
 
-    document.getElementById("detail-heading").textContent = `Đơn hàng ${order.orderNo}`;
-
-    // Header summary
     const topBar = document.createElement("div");
     topBar.style.display = "flex";
     topBar.style.justifyContent = "space-between";
@@ -433,15 +601,12 @@
 
     const statusBadge = document.createElement("span");
     statusBadge.className = `badge st-${order.status}`;
-    statusBadge.style.fontSize = "13px";
-    statusBadge.textContent = `Trạng thái: ${STATUS_LABELS[order.status] || order.status}`;
-
+    statusBadge.textContent = `Trạng thái: ${ORDER_STATUS_LABELS[order.status] || order.status}`;
     const createdInfo = document.createElement("span");
     createdInfo.style.color = "var(--chu-mo)";
     createdInfo.textContent = `Tạo lúc: ${formatVnDateTime(order.createdAt)}`;
     topBar.append(statusBadge, createdInfo);
 
-    // Recipient & Note boxes
     const infoGrid = document.createElement("div");
     infoGrid.className = "info-grid";
 
@@ -468,7 +633,6 @@
 
     infoGrid.append(recBox, noteBox);
 
-    // Items table
     const table = document.createElement("table");
     const thead = document.createElement("thead");
     const hr = document.createElement("tr");
@@ -504,10 +668,8 @@
     });
     table.append(thead, tbody);
 
-    // Totals summary
     const totalsBox = document.createElement("div");
     totalsBox.className = "totals-box";
-
     const addTotalRow = (label, value, extraClass = "") => {
       const r = document.createElement("div");
       r.className = `totals-row ${extraClass}`.trim();
@@ -518,7 +680,6 @@
       r.append(s1, s2);
       totalsBox.appendChild(r);
     };
-
     addTotalRow("Tạm tính tiền hàng:", formatVnd(order.subtotalVnd));
     addTotalRow(
       "Phí vận chuyển:",
@@ -532,12 +693,10 @@
 
     container.append(topBar, infoGrid, table, totalsBox);
 
-    // Allowed status transitions form
-    const nextChoices = ALLOWED_TRANSITIONS[order.status] || [];
+    const nextChoices = ALLOWED_ORDER_TRANSITIONS[order.status] || [];
     if (nextChoices.length > 0) {
       const tCard = document.createElement("div");
       tCard.className = "transition-card";
-
       const tTitle = document.createElement("h3");
       tTitle.textContent = "Cập nhật trạng thái xử lý";
 
@@ -552,7 +711,7 @@
       nextChoices.forEach((st) => {
         const opt = document.createElement("option");
         opt.value = st;
-        opt.textContent = STATUS_LABELS[st] || st;
+        opt.textContent = ORDER_STATUS_LABELS[st] || st;
         statusSel.appendChild(opt);
       });
       statusWrap.append(statusLbl, statusSel);
@@ -574,7 +733,6 @@
       };
       statusSel.addEventListener("change", updateShipVisibility);
       updateShipVisibility();
-
       row.append(statusWrap, shipWrap);
 
       const noteLbl = document.createElement("label");
@@ -582,11 +740,9 @@
       const noteInp = document.createElement("textarea");
       noteInp.rows = 2;
       noteInp.maxLength = 1000;
-      noteInp.placeholder = "VD: Đã gọi khách xác nhận giao sáng mai…";
 
       const msgEl = document.createElement("div");
       msgEl.className = "msg-box";
-
       const submitBtn = document.createElement("button");
       submitBtn.type = "submit";
       submitBtn.className = "btn btn-chinh";
@@ -601,28 +757,24 @@
           status: targetStatus,
           ...(noteInp.value.trim() ? { note: noteInp.value.trim() } : {})
         };
-
         if (order.status === "new" && targetStatus === "confirmed") {
           const rawShip = String(shipInp.value).trim();
           if (!/^(0|[1-9][0-9]{0,14})$/.test(rawShip)) {
-            showMsg(msgEl, "loi", "Vui lòng nhập phí vận chuyển là số nguyên VND không âm (ví dụ 30000 hoặc 0).");
+            showMsg(msgEl, "loi", "Phí vận chuyển phải là số nguyên VND không âm.");
             return;
           }
           body.shippingFeeVnd = rawShip;
         }
-
         submitBtn.disabled = true;
         const res = await apiRequest(`/api/v1/admin/orders/${order.id}`, {
           method: "PATCH",
           body
         });
         submitBtn.disabled = false;
-
         if (!res.ok || !res.data) {
           showMsg(msgEl, "loi", res.errorMessage);
           return;
         }
-
         await fetchOrders(true);
         renderOrderDetail(res.data);
       });
@@ -632,32 +784,26 @@
       container.appendChild(tCard);
     }
 
-    // Events timeline
     const timeline = document.createElement("div");
     timeline.className = "timeline";
     const tlTitle = document.createElement("h3");
     tlTitle.textContent = "Lịch sử xử lý đơn hàng";
     timeline.appendChild(tlTitle);
-
     (order.events || []).forEach((ev) => {
       const item = document.createElement("div");
       item.className = "ev-item";
-
       const head = document.createElement("div");
       head.style.fontWeight = "700";
       if (ev.eventType === "order_created") {
         head.textContent = "Khách tạo đơn COD mới";
       } else {
-        const fromLbl = ev.oldStatus ? STATUS_LABELS[ev.oldStatus] || ev.oldStatus : "—";
-        const toLbl = ev.newStatus ? STATUS_LABELS[ev.newStatus] || ev.newStatus : "—";
+        const fromLbl = ev.oldStatus ? ORDER_STATUS_LABELS[ev.oldStatus] || ev.oldStatus : "—";
+        const toLbl = ev.newStatus ? ORDER_STATUS_LABELS[ev.newStatus] || ev.newStatus : "—";
         head.textContent = `Chuyển trạng thái: ${fromLbl} → ${toLbl}`;
       }
-
       const meta = document.createElement("div");
       meta.className = "ev-time";
-      const actorText = ev.actorAdmin ? `bởi ${ev.actorAdmin.email}` : "từ trang đặt hàng";
-      meta.textContent = `${formatVnDateTime(ev.createdAt)} · ${actorText}`;
-
+      meta.textContent = `${formatVnDateTime(ev.createdAt)} · ${ev.actorAdmin ? "bởi " + ev.actorAdmin.email : "từ trang đặt hàng"}`;
       item.append(head, meta);
       if (ev.note) {
         const noteDiv = document.createElement("div");
@@ -667,7 +813,6 @@
       }
       timeline.appendChild(item);
     });
-
     container.appendChild(timeline);
   }
 
@@ -677,7 +822,469 @@
     renderOrderDetail(r.data);
   }
 
-  /* ===== AUTH & CONTROLS ===== */
+  /* ==================== INBOX MODULE (M2) ==================== */
+  function renderConvStatusTabs() {
+    const box = document.getElementById("conv-status-tabs");
+    box.replaceChildren();
+    [
+      ["", "Tất cả"],
+      ["waiting_shop", "Chờ shop"],
+      ["open", "Đang mở"],
+      ["waiting_customer", "Chờ khách"],
+      ["closed", "Đã đóng"]
+    ].forEach(([code, label]) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = convFilterStatus === code ? "active" : "";
+      btn.textContent = label;
+      btn.addEventListener("click", () => {
+        convFilterStatus = code;
+        renderConvStatusTabs();
+        void fetchConversations(true);
+      });
+      box.appendChild(btn);
+    });
+  }
+
+  function convDisplayName(c) {
+    return c.visitorName || `Khách web #${c.id.slice(0, 6)}`;
+  }
+
+  function renderConvList() {
+    const listEl = document.getElementById("conv-list");
+    listEl.replaceChildren();
+    if (conversations.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "empty-state";
+      empty.textContent = "Chưa có hội thoại nào khớp bộ lọc.";
+      listEl.appendChild(empty);
+    } else {
+      conversations.forEach((c) => {
+        const row = document.createElement("div");
+        row.className = `list-row ${selectedConvId === c.id ? "active" : ""}`;
+
+        const top = document.createElement("div");
+        top.className = "row-top";
+        const nameEl = document.createElement("span");
+        nameEl.className = "row-title";
+        nameEl.textContent = convDisplayName(c);
+
+        const badgesWrap = document.createElement("span");
+        badgesWrap.style.display = "inline-flex";
+        badgesWrap.style.gap = "5px";
+        badgesWrap.style.alignItems = "center";
+
+        if (c.unreadForShop > 0) {
+          const unread = document.createElement("span");
+          unread.className = "unread-pill";
+          unread.textContent = String(c.unreadForShop);
+          badgesWrap.appendChild(unread);
+        }
+        const stBadge = document.createElement("span");
+        stBadge.className = `badge st-${c.status}`;
+        stBadge.textContent = CONV_STATUS_LABELS[c.status] || c.status;
+        badgesWrap.appendChild(stBadge);
+        top.append(nameEl, badgesWrap);
+
+        const previewRow = document.createElement("div");
+        previewRow.className = "row-meta";
+        const prevText = document.createElement("span");
+        prevText.style.overflow = "hidden";
+        prevText.style.textOverflow = "ellipsis";
+        prevText.style.whiteSpace = "nowrap";
+        prevText.textContent = c.lastMessagePreview || "—";
+        previewRow.appendChild(prevText);
+
+        const footRow = document.createElement("div");
+        footRow.className = "row-meta";
+        const modeSpan = document.createElement("span");
+        modeSpan.textContent = c.handlingMode === "human" ? "👤 Chủ shop phụ trách" : "🤖 Bot tự động";
+        const timeSpan = document.createElement("span");
+        timeSpan.textContent = formatVnDateTime(c.lastMessageAt);
+        footRow.append(modeSpan, timeSpan);
+
+        row.append(top, previewRow, footRow);
+        row.addEventListener("click", () => {
+          void selectConversation(c.id);
+        });
+        listEl.appendChild(row);
+      });
+    }
+    document.getElementById("conv-more-wrap").style.display = convNextCursor ? "block" : "none";
+  }
+
+  async function fetchConversations(reset = true) {
+    if (reset) {
+      conversations = [];
+      convNextCursor = null;
+    }
+    const qs = new URLSearchParams({ limit: "25" });
+    if (convFilterStatus) qs.set("status", convFilterStatus);
+    if (convQuery) qs.set("q", convQuery);
+    if (!reset && convNextCursor) qs.set("cursor", convNextCursor);
+
+    const r = await apiRequest(`/api/v1/admin/conversations?${qs.toString()}`);
+    if (!r.ok) return;
+
+    updateUnreadBadge(r.raw?.unreadConversationsCount ?? 0);
+    conversations = reset ? (r.data || []) : [...conversations, ...(r.data || [])];
+    convNextCursor = r.nextCursor;
+    renderConvList();
+  }
+
+  function appendAdminThreadMessage(m) {
+    if (!m || !m.id || seenAdminMsgIds.has(m.id)) return;
+    seenAdminMsgIds.add(m.id);
+
+    const box = document.getElementById("conv-messages");
+    const wrap = document.createElement("div");
+    if (m.senderType === "customer") {
+      wrap.className = "chat-msg from-customer";
+    } else if (m.senderType === "admin") {
+      wrap.className = "chat-msg from-shop is-admin";
+    } else {
+      wrap.className = "chat-msg from-shop is-bot";
+    }
+
+    const bubble = document.createElement("div");
+    bubble.className = "chat-bubble";
+    bubble.textContent = m.body;
+
+    const meta = document.createElement("div");
+    meta.className = "chat-meta";
+    const whoLabel =
+      m.senderType === "customer"
+        ? "Khách"
+        : m.senderType === "admin"
+        ? `👑 Chủ shop (${m.actorAdmin?.email || "admin"})`
+        : "🤖 Bot Mino";
+    meta.textContent = `${whoLabel} · ${formatVnDateTime(m.createdAt)}`;
+
+    wrap.append(bubble, meta);
+    box.appendChild(wrap);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  function renderConversationHeader(session) {
+    const head = document.getElementById("conv-thread-head");
+    head.replaceChildren();
+
+    const left = document.createElement("div");
+    const title = document.createElement("h2");
+    title.textContent = convDisplayName(session);
+    const sub = document.createElement("div");
+    sub.style.display = "flex";
+    sub.style.gap = "6px";
+    sub.style.marginTop = "4px";
+
+    const stPill = document.createElement("span");
+    stPill.className = `badge st-${session.status}`;
+    stPill.textContent = CONV_STATUS_LABELS[session.status] || session.status;
+
+    const modePill = document.createElement("span");
+    modePill.className = `badge ${session.handlingMode === "human" ? "mode-human" : "mode-bot"}`;
+    modePill.textContent = session.handlingMode === "human" ? "👤 Chủ shop tiếp quản" : "🤖 Bot đang trực";
+    sub.append(stPill, modePill);
+    left.append(title, sub);
+
+    const actions = document.createElement("div");
+    actions.style.display = "flex";
+    actions.style.gap = "8px";
+    actions.style.flexWrap = "wrap";
+
+    const toggleModeBtn = document.createElement("button");
+    toggleModeBtn.type = "button";
+    toggleModeBtn.className = "btn btn-vien";
+    toggleModeBtn.textContent =
+      session.handlingMode === "human" ? "🤖 Bật lại Bot" : "👤 Tiếp quản (tắt Bot)";
+    toggleModeBtn.addEventListener("click", async () => {
+      const nextMode = session.handlingMode === "human" ? "bot" : "human";
+      await apiRequest(`/api/v1/admin/conversations/${session.id}`, {
+        method: "PATCH",
+        body: { handlingMode: nextMode }
+      });
+      await selectConversation(session.id);
+      await fetchConversations(true);
+    });
+
+    const toggleCloseBtn = document.createElement("button");
+    toggleCloseBtn.type = "button";
+    toggleCloseBtn.className = "btn btn-vien";
+    toggleCloseBtn.textContent =
+      session.status === "closed" ? "↺ Mở lại hội thoại" : "✅ Đóng hội thoại";
+    toggleCloseBtn.addEventListener("click", async () => {
+      const nextStatus = session.status === "closed" ? "open" : "closed";
+      await apiRequest(`/api/v1/admin/conversations/${session.id}`, {
+        method: "PATCH",
+        body: { status: nextStatus }
+      });
+      await selectConversation(session.id);
+      await fetchConversations(true);
+    });
+
+    actions.append(toggleModeBtn, toggleCloseBtn);
+    head.append(left, actions);
+  }
+
+  function renderConversationSidePanel(detail) {
+    const container = document.getElementById("conv-side-body");
+    container.replaceChildren();
+    const session = detail.session;
+
+    // 1. Visitor info form
+    const profileForm = document.createElement("form");
+    profileForm.className = "info-box";
+    const pTitle = document.createElement("h3");
+    pTitle.textContent = "Thông tin khách hàng";
+    const lblName = document.createElement("label");
+    lblName.textContent = "Tên gợi nhớ";
+    const inpName = document.createElement("input");
+    inpName.type = "text";
+    inpName.maxLength = 120;
+    inpName.value = session.visitorName || "";
+    inpName.placeholder = "VD: Chị Lan Quận 7";
+
+    const lblPhone = document.createElement("label");
+    lblPhone.style.marginTop = "8px";
+    lblPhone.textContent = "Số điện thoại (để khớp đơn COD)";
+    const inpPhone = document.createElement("input");
+    inpPhone.type = "text";
+    inpPhone.maxLength = 32;
+    inpPhone.value = session.visitorPhone || "";
+    inpPhone.placeholder = "VD: 0901 234 567";
+
+    const pMsg = document.createElement("div");
+    pMsg.className = "msg-box";
+    const saveProfileBtn = document.createElement("button");
+    saveProfileBtn.type = "submit";
+    saveProfileBtn.className = "btn btn-vien";
+    saveProfileBtn.style.marginTop = "10px";
+    saveProfileBtn.style.width = "100%";
+    saveProfileBtn.textContent = "💾 Lưu thông tin khách";
+
+    profileForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      pMsg.className = "msg-box";
+      const r = await apiRequest(`/api/v1/admin/conversations/${session.id}`, {
+        method: "PATCH",
+        body: {
+          visitorName: inpName.value.trim() || null,
+          visitorPhone: inpPhone.value.trim() || null
+        }
+      });
+      if (!r.ok) {
+        showMsg(pMsg, "loi", r.errorMessage);
+        return;
+      }
+      showMsg(pMsg, "ok", "Đã lưu thông tin khách.");
+      await selectConversation(session.id);
+      await fetchConversations(true);
+    });
+
+    profileForm.append(pTitle, lblName, inpName, lblPhone, inpPhone, pMsg, saveProfileBtn);
+    container.appendChild(profileForm);
+
+    // 2. Related COD orders
+    const ordersBox = document.createElement("div");
+    ordersBox.className = "timeline";
+    const oTitle = document.createElement("h3");
+    oTitle.textContent = "Đơn COD trùng SĐT";
+    ordersBox.appendChild(oTitle);
+
+    if (!detail.relatedOrders || detail.relatedOrders.length === 0) {
+      const none = document.createElement("div");
+      none.style.fontSize = "12.5px";
+      none.style.color = "var(--chu-mo)";
+      none.textContent = session.visitorPhone
+        ? "Chưa tìm thấy đơn COD nào với SĐT này."
+        : "Nhập SĐT khách ở trên để tự động tra cứu đơn COD.";
+      ordersBox.appendChild(none);
+    } else {
+      detail.relatedOrders.forEach((ro) => {
+        const card = document.createElement("div");
+        card.className = "ev-item";
+        card.style.cursor = "pointer";
+        const b = document.createElement("b");
+        b.textContent = `${ro.orderNo} · ${ORDER_STATUS_LABELS[ro.status] || ro.status}`;
+        const sub = document.createElement("div");
+        sub.className = "ev-time";
+        sub.textContent = `${ro.totalVnd ? formatVnd(ro.totalVnd) : "Tạm tính " + formatVnd(ro.subtotalVnd)} · ${formatVnDateTime(ro.createdAt)}`;
+        card.append(b, sub);
+        card.addEventListener("click", () => {
+          selectedOrderId = ro.id;
+          switchWorkspace("orders");
+          renderOrderList();
+          void loadOrderDetail(ro.id);
+        });
+        ordersBox.appendChild(card);
+      });
+    }
+    container.appendChild(ordersBox);
+
+    // 3. Internal notes (separate from customer chat)
+    const notesSection = document.createElement("div");
+    notesSection.className = "timeline";
+    const nTitle = document.createElement("h3");
+    nTitle.textContent = "📌 Ghi chú nội bộ (khách không thấy)";
+    notesSection.appendChild(nTitle);
+
+    if (!detail.notes || detail.notes.length === 0) {
+      const emptyN = document.createElement("div");
+      emptyN.style.fontSize = "12.5px";
+      emptyN.style.color = "var(--chu-mo)";
+      emptyN.textContent = "Chưa có ghi chú nội bộ.";
+      notesSection.appendChild(emptyN);
+    } else {
+      detail.notes.forEach((n) => {
+        const nc = document.createElement("div");
+        nc.className = "note-card";
+        const bodyDiv = document.createElement("div");
+        bodyDiv.textContent = n.body;
+        const metaDiv = document.createElement("div");
+        metaDiv.style.fontSize = "11px";
+        metaDiv.style.marginTop = "4px";
+        metaDiv.style.opacity = "0.8";
+        metaDiv.textContent = `${n.authorAdmin.email} · ${formatVnDateTime(n.createdAt)}`;
+        nc.append(bodyDiv, metaDiv);
+        notesSection.appendChild(nc);
+      });
+    }
+    container.appendChild(notesSection);
+  }
+
+  async function selectConversation(convId) {
+    selectedConvId = convId;
+    renderConvList();
+
+    const [detailRes, msgsRes] = await Promise.all([
+      apiRequest(`/api/v1/admin/conversations/${convId}`),
+      apiRequest(`/api/v1/admin/conversations/${convId}/messages?limit=50`)
+    ]);
+
+    if (!detailRes.ok || !detailRes.data || !msgsRes.ok) return;
+
+    selectedConvSession = detailRes.data.session;
+    renderConversationHeader(selectedConvSession);
+    renderConversationSidePanel(detailRes.data);
+
+    const threadEl = document.getElementById("conv-messages");
+    threadEl.replaceChildren();
+    seenAdminMsgIds.clear();
+    (msgsRes.data || []).forEach(appendAdminThreadMessage);
+    convLatestMsgCursor = msgsRes.raw?.latestCursor || null;
+
+    document.getElementById("conv-composer").style.display = "block";
+
+    if (selectedConvSession.unreadForShop > 0) {
+      await apiRequest(`/api/v1/admin/conversations/${convId}`, {
+        method: "PATCH",
+        body: { markRead: true }
+      });
+      await fetchConversations(true);
+    }
+  }
+
+  async function pollActiveAdminConversation() {
+    if (!csrfToken || document.hidden || activeWorkspaceMode !== "inbox") return;
+    await fetchConversations(true);
+    if (!selectedConvId) return;
+
+    const qs = new URLSearchParams({ limit: "50" });
+    if (convLatestMsgCursor) qs.set("afterCursor", convLatestMsgCursor);
+    const r = await apiRequest(`/api/v1/admin/conversations/${selectedConvId}/messages?${qs.toString()}`);
+    if (r.ok && Array.isArray(r.data) && r.data.length > 0) {
+      r.data.forEach(appendAdminThreadMessage);
+      if (r.raw?.latestCursor) convLatestMsgCursor = r.raw.latestCursor;
+      await apiRequest(`/api/v1/admin/conversations/${selectedConvId}`, {
+        method: "PATCH",
+        body: { markRead: true }
+      });
+    }
+  }
+
+  setInterval(() => {
+    void pollActiveAdminConversation();
+  }, 4000);
+
+  function setComposerTab(mode) {
+    composeMode = mode;
+    const btnReply = document.getElementById("btn-compose-reply");
+    const btnNote = document.getElementById("btn-compose-note");
+    const inp = document.getElementById("inp-compose-body");
+    const sendBtn = document.getElementById("btn-compose-send");
+
+    btnReply.className = mode === "reply" ? "active-reply" : "";
+    btnNote.className = mode === "note" ? "active-note" : "";
+    if (mode === "reply") {
+      inp.placeholder = "Nhập tin nhắn trả lời khách (tự động chuyển sang chế độ Chủ shop tiếp quản)…";
+      sendBtn.className = "btn btn-chinh";
+      sendBtn.textContent = "Gửi khách";
+    } else {
+      inp.placeholder = "Nhập ghi chú nội bộ (chỉ lưu nội bộ cho chủ shop, KHÔNG gửi cho khách)…";
+      sendBtn.className = "btn btn-vang";
+      sendBtn.textContent = "Lưu ghi chú";
+    }
+  }
+
+  document.getElementById("btn-compose-reply").addEventListener("click", () => setComposerTab("reply"));
+  document.getElementById("btn-compose-note").addEventListener("click", () => setComposerTab("note"));
+  document.getElementById("inp-compose-body").addEventListener("input", () => {
+    pendingReplyIdemKey = null;
+  });
+
+  document.getElementById("form-compose").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!selectedConvId) return;
+    const inp = document.getElementById("inp-compose-body");
+    const msgBox = document.getElementById("msg-compose");
+    msgBox.className = "msg-box";
+    const text = inp.value.trim();
+    if (!text) return;
+
+    const sendBtn = document.getElementById("btn-compose-send");
+    sendBtn.disabled = true;
+
+    if (composeMode === "note") {
+      const r = await apiRequest(`/api/v1/admin/conversations/${selectedConvId}/notes`, {
+        method: "POST",
+        body: { body: text }
+      });
+      sendBtn.disabled = false;
+      if (!r.ok) {
+        showMsg(msgBox, "loi", r.errorMessage);
+        return;
+      }
+      inp.value = "";
+      await selectConversation(selectedConvId);
+      return;
+    }
+
+    if (!pendingReplyIdemKey) {
+      pendingReplyIdemKey = generateUuid();
+    }
+
+    const r = await apiRequest(`/api/v1/admin/conversations/${selectedConvId}/messages`, {
+      method: "POST",
+      headers: { "Idempotency-Key": pendingReplyIdemKey },
+      body: { body: text }
+    });
+    sendBtn.disabled = false;
+
+    if (!r.ok || !r.data) {
+      if (r.status === 400 || r.status === 409) pendingReplyIdemKey = null;
+      showMsg(msgBox, "loi", r.errorMessage);
+      return;
+    }
+
+    inp.value = "";
+    pendingReplyIdemKey = null;
+    appendAdminThreadMessage(r.data.message);
+    if (r.data.latestCursor) convLatestMsgCursor = r.data.latestCursor;
+    if (r.data.session) renderConversationHeader(r.data.session);
+    await fetchConversations(true);
+  });
+
+  /* ==================== AUTH & GLOBAL CONTROLS ==================== */
   document.getElementById("form-login").addEventListener("submit", async (e) => {
     e.preventDefault();
     const msgEl = document.getElementById("msg-login");
@@ -708,39 +1315,49 @@
     lbl.style.display = "inline";
     document.getElementById("btn-logout").style.display = "inline-block";
 
-    if (orders.length === 0) {
-      await fetchOrders(true);
-    }
+    await Promise.all([fetchOrders(true), fetchConversations(true)]);
   });
 
   document.getElementById("btn-logout").addEventListener("click", async () => {
     await apiRequest("/api/v1/admin/session", { method: "DELETE" });
     csrfToken = null;
     orders = [];
+    conversations = [];
     selectedOrderId = null;
+    selectedConvId = null;
     document.getElementById("admin-shell").style.display = "none";
     document.getElementById("admin-user-label").style.display = "none";
     document.getElementById("btn-logout").style.display = "none";
     openLoginModal("Đã đăng xuất phiên quản trị.");
   });
 
-  document.getElementById("form-search").addEventListener("submit", (e) => {
+  document.getElementById("form-search-orders").addEventListener("submit", (e) => {
     e.preventDefault();
-    currentQuery = document.getElementById("inp-q").value.trim();
+    orderQuery = document.getElementById("inp-order-q").value.trim();
     selectedOrderId = null;
     void fetchOrders(true);
   });
 
-  document.getElementById("btn-load-more").addEventListener("click", () => {
-    void fetchOrders(false);
+  document.getElementById("form-search-conv").addEventListener("submit", (e) => {
+    e.preventDefault();
+    convQuery = document.getElementById("inp-conv-q").value.trim();
+    selectedConvId = null;
+    void fetchConversations(true);
   });
+
+  document.getElementById("btn-orders-more").addEventListener("click", () => void fetchOrders(false));
+  document.getElementById("btn-conv-more").addEventListener("click", () => void fetchConversations(false));
 
   document.getElementById("btn-refresh").addEventListener("click", () => {
     void fetchOrders(true);
-    if (selectedOrderId) void loadOrderDetail(selectedOrderId);
+    void fetchConversations(true);
+    if (selectedOrderId && activeWorkspaceMode === "orders") void loadOrderDetail(selectedOrderId);
+    if (selectedConvId && activeWorkspaceMode === "inbox") void selectConversation(selectedConvId);
   });
 
-  renderStatusTabs();
+  renderOrderStatusTabs();
+  renderConvStatusTabs();
+  setComposerTab("reply");
 
   (async () => {
     const sessionRes = await apiRequest("/api/v1/admin/session");
@@ -754,7 +1371,7 @@
     lbl.textContent = sessionRes.data.user.email;
     lbl.style.display = "inline";
     document.getElementById("btn-logout").style.display = "inline-block";
-    await fetchOrders(true);
+    await Promise.all([fetchOrders(true), fetchConversations(true)]);
   })();
 })();
 </script>
