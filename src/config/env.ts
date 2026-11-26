@@ -26,6 +26,10 @@ export interface AppConfig {
   messengerPageAccessToken: string | null;
   messengerGraphApiBaseUrl: string;
   messengerSendTimeoutMs: number;
+  aiApiKey: string | null;
+  aiBaseUrl: string;
+  aiModel: string;
+  aiTimeoutMs: number;
 }
 
 function parsePositiveInt(raw: string | undefined, fallback: number, name: string): number {
@@ -171,6 +175,15 @@ export function loadConfig(overrides: Partial<Record<string, string>> = {}): App
       env.MESSENGER_SEND_TIMEOUT_MS,
       8000,
       "MESSENGER_SEND_TIMEOUT_MS"
-    )
+    ),
+    aiApiKey:
+      env.AI_API_KEY && env.AI_API_KEY.trim() !== ""
+        ? env.AI_API_KEY.trim()
+        : null,
+    aiBaseUrl: (env.AI_BASE_URL ?? "https://api.openai.com/v1")
+      .trim()
+      .replace(/\/+$/, ""),
+    aiModel: (env.AI_MODEL ?? "gpt-4o-mini").trim(),
+    aiTimeoutMs: parsePositiveInt(env.AI_TIMEOUT_MS, 8000, "AI_TIMEOUT_MS")
   };
 }

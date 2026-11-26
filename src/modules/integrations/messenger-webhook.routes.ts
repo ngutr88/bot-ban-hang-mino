@@ -3,7 +3,8 @@ import { Prisma, type PrismaClient } from "@prisma/client";
 import type { AppConfig } from "../../config/env.js";
 import { forbiddenError, validationError } from "../../shared/errors.js";
 import { formatVndBigInt } from "../../shared/money.js";
-import { matchBotReplyDetailed } from "../../shared/bot-matcher.js";
+import { resolveControlledBotReply } from "../ai/ai-orchestrator.js";
+import type { GroundedAiProvider } from "../ai/ai-provider.js";
 import {
   verifyMessengerChallenge,
   verifyMessengerSignature,
@@ -48,9 +49,10 @@ export async function registerMessengerWebhookRoutes(
     prisma: PrismaClient;
     config: AppConfig;
     messengerAdapter: MessengerAdapter;
+    aiProvider: GroundedAiProvider;
   }
 ): Promise<void> {
-  const { prisma, config, messengerAdapter } = deps;
+  const { prisma, config, messengerAdapter, aiProvider } = deps;
 
   await app.register(async (webhookScope) => {
     webhookScope.addContentTypeParser(
@@ -250,23 +252,30 @@ export async function registerMessengerWebhookRoutes(
                   })
                 ]);
 
-                const match = matchBotReplyDetailed({
-                  message: safeText,
-                  products: activeProducts.map((p) => ({
-                    id: p.id,
-                    name: p.name,
-                    priceVnd: formatVndBigInt(p.priceVnd),
-                    emoji: p.emoji,
-                    description: p.description
-                  })),
-                  rules: enabledRules.map((r) => ({
-                    id: r.id,
-                    keywords: r.keywords,
-                    answer: r.answer,
-                    priority: r.priority
-                  })),
-                  fallbackReply: integration.shop.fallbackReply
-                });
+                const smartResult = await resolveControlledBotReply(
+                  tx,
+                  config,
+                  aiProvider,
+                  {
+                    shop: integration.shop,
+                    channel: "messenger",
+                    chatSessionId: chatSession.id,
+                    message: safeText,
+                    products: activeProducts.map((p) => ({
+                      id: p.id,
+                      name: p.name,
+                      priceVnd: formatVndBigInt(p.priceVnd),
+                      emoji: p.emoji,
+                      description: p.description
+                    })),
+                    rules: enabledRules.map((r) => ({
+                      id: r.id,
+                      keywords: r.keywords,
+                      answer: r.answer,
+                      priority: r.priority
+                    }))
+                  }
+                );
 
                 const botTime = new Date(now.getTime() + 1);
                 const botMsg = await tx.chatMessage.create({
@@ -274,7 +283,7 @@ export async function registerMessengerWebhookRoutes(
                     shopId: integration.shopId,
                     chatSessionId: chatSession.id,
                     senderType: "bot",
-                    body: match.reply,
+                    body: smartResult.reply,
                     deliveryStatus: "pending",
                     createdAt: botTime
                   }
@@ -296,12 +305,14 @@ export async function registerMessengerWebhookRoutes(
                   where: { id: chatSession.id },
                   data: {
                     integrationId: integration.id,
-                    status:
-                      match.matchedBy === "fallback" ? "waiting_shop" : "open",
+                    status: smartResult.escalateToShop ? "waiting_shop" : "open",
+                    ...(smartResult.switchToHumanMode
+                      ? { handlingMode: "human" }
+                      : {}),
                     closedAt: null,
                     unreadForShop: { increment: 1 },
                     lastMessageAt: botTime,
-                    lastMessagePreview: truncatePreview(match.reply)
+                    lastMessagePreview: truncatePreview(smartResult.reply)
                   }
                 });
 

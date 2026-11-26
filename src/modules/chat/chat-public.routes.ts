@@ -3,7 +3,8 @@ import {
   Prisma,
   type ChatMessage,
   type ChatSession,
-  type PrismaClient
+  type PrismaClient,
+  type Shop
 } from "@prisma/client";
 import type { AppConfig } from "../../config/env.js";
 import {
@@ -12,7 +13,6 @@ import {
   validationError
 } from "../../shared/errors.js";
 import { formatVndBigInt } from "../../shared/money.js";
-import { matchBotReplyDetailed } from "../../shared/bot-matcher.js";
 import {
   clampLimit,
   decodeTimestampIdCursor,
@@ -24,9 +24,18 @@ import {
   sha256Bytes
 } from "../auth/crypto.js";
 import { getPrimaryPublicShop } from "../shop/shop.routes.js";
+import { resolveControlledBotReply } from "../ai/ai-orchestrator.js";
+import type { GroundedAiProvider } from "../ai/ai-provider.js";
 
 export const VISITOR_CHAT_COOKIE_NAME = "mino_visitor_chat";
+const DEFAULT_SHOP_SLUG = "cua-hang-mino";
 const IDEMPOTENCY_KEY_REGEX = /^[A-Za-z0-9._:-]{8,128}$/;
+
+function visitorCookieNameForShop(shop: Shop): string {
+  return shop.slug === DEFAULT_SHOP_SLUG
+    ? VISITOR_CHAT_COOKIE_NAME
+    : `${VISITOR_CHAT_COOKIE_NAME}_${shop.slug}`;
+}
 
 function truncatePreview(text: string): string {
   const oneLine = text.replace(/\s+/g, " ").trim();
@@ -53,11 +62,12 @@ function serializeVisitorSession(session: ChatSession) {
 
 function setVisitorCookie(
   reply: FastifyReply,
+  cookieName: string,
   rawToken: string,
   expiresAt: Date,
   config: AppConfig
 ): void {
-  reply.setCookie(VISITOR_CHAT_COOKIE_NAME, rawToken, {
+  reply.setCookie(cookieName, rawToken, {
     httpOnly: true,
     secure: config.nodeEnv === "production",
     sameSite: "lax",
@@ -69,9 +79,11 @@ function setVisitorCookie(
 async function requireVisitorSession(
   prisma: PrismaClient,
   request: FastifyRequest,
-  shopId: string
+  shop: Shop
 ): Promise<ChatSession> {
-  const rawToken = request.cookies[VISITOR_CHAT_COOKIE_NAME];
+  const cookieName = visitorCookieNameForShop(shop);
+  const rawToken =
+    request.cookies[cookieName] ?? request.cookies[VISITOR_CHAT_COOKIE_NAME];
   if (!rawToken || rawToken.length < 20 || rawToken.length > 256) {
     throw unauthenticatedError("Phiên trò chuyện chưa được khởi tạo hoặc đã hết hạn.");
   }
@@ -81,7 +93,7 @@ async function requireVisitorSession(
     where: { visitorTokenHash: tokenHash }
   });
 
-  if (!session || session.shopId !== shopId || session.expiresAt <= new Date()) {
+  if (!session || session.shopId !== shop.id || session.expiresAt <= new Date()) {
     throw unauthenticatedError("Phiên trò chuyện đã hết hạn, vui lòng tải lại hộp chat.");
   }
 
@@ -93,11 +105,14 @@ export async function registerPublicChatRoutes(
   deps: {
     prisma: PrismaClient;
     config: AppConfig;
+    aiProvider: GroundedAiProvider;
   }
 ): Promise<void> {
-  const { prisma, config } = deps;
+  const { prisma, config, aiProvider } = deps;
 
-  app.post(
+  app.post<{
+    Querystring: { shop?: string };
+  }>(
     "/api/v1/public/chat/sessions",
     {
       config: {
@@ -105,16 +120,26 @@ export async function registerPublicChatRoutes(
           max: config.publicChatSessionRateLimitMax,
           timeWindow: config.publicChatSessionRateLimitWindowMs
         }
+      },
+      schema: {
+        querystring: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            shop: { type: "string", maxLength: 64 }
+          }
+        }
       }
     },
     async (request, reply) => {
-      const shop = await getPrimaryPublicShop(prisma);
+      const shop = await getPrimaryPublicShop(prisma, request);
+      const cookieName = visitorCookieNameForShop(shop);
       const now = new Date();
       const nextExpiry = new Date(
         now.getTime() + config.visitorChatTtlDays * 24 * 3600 * 1000
       );
 
-      const rawExistingToken = request.cookies[VISITOR_CHAT_COOKIE_NAME];
+      const rawExistingToken = request.cookies[cookieName];
       if (
         rawExistingToken &&
         rawExistingToken.length >= 20 &&
@@ -143,7 +168,7 @@ export async function registerPublicChatRoutes(
           const chronological = recentDesc.reverse();
           const lastMsg = chronological[chronological.length - 1];
 
-          setVisitorCookie(reply, rawExistingToken, nextExpiry, config);
+          setVisitorCookie(reply, cookieName, rawExistingToken, nextExpiry, config);
 
           return reply.status(200).send({
             data: {
@@ -192,7 +217,7 @@ export async function registerPublicChatRoutes(
         }
       );
 
-      setVisitorCookie(reply, rawVisitorToken, nextExpiry, config);
+      setVisitorCookie(reply, cookieName, rawVisitorToken, nextExpiry, config);
 
       return reply.status(201).send({
         data: {
@@ -209,7 +234,7 @@ export async function registerPublicChatRoutes(
   );
 
   app.get<{
-    Querystring: { afterCursor?: string; limit?: string };
+    Querystring: { afterCursor?: string; limit?: string; shop?: string };
   }>(
     "/api/v1/public/chat/sessions/current/messages",
     {
@@ -219,14 +244,15 @@ export async function registerPublicChatRoutes(
           additionalProperties: false,
           properties: {
             afterCursor: { type: "string", maxLength: 512 },
-            limit: { type: "string", pattern: "^[0-9]{1,4}$" }
+            limit: { type: "string", pattern: "^[0-9]{1,4}$" },
+            shop: { type: "string", maxLength: 64 }
           }
         }
       }
     },
     async (request, reply) => {
-      const shop = await getPrimaryPublicShop(prisma);
-      const session = await requireVisitorSession(prisma, request, shop.id);
+      const shop = await getPrimaryPublicShop(prisma, request);
+      const session = await requireVisitorSession(prisma, request, shop);
       const limit = clampLimit(
         request.query.limit !== undefined ? Number(request.query.limit) : undefined
       );
@@ -271,6 +297,7 @@ export async function registerPublicChatRoutes(
   );
 
   app.post<{
+    Querystring: { shop?: string };
     Body: { body: string };
   }>(
     "/api/v1/public/chat/sessions/current/messages",
@@ -282,6 +309,13 @@ export async function registerPublicChatRoutes(
         }
       },
       schema: {
+        querystring: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            shop: { type: "string", maxLength: 64 }
+          }
+        },
         body: {
           type: "object",
           additionalProperties: false,
@@ -311,8 +345,8 @@ export async function registerPublicChatRoutes(
         ]);
       }
 
-      const shop = await getPrimaryPublicShop(prisma);
-      const session = await requireVisitorSession(prisma, request, shop.id);
+      const shop = await getPrimaryPublicShop(prisma, request);
+      const session = await requireVisitorSession(prisma, request, shop);
       const fingerprint = sha256Bytes(
         JSON.stringify({ role: "customer", body: trimmedBody })
       );
@@ -389,23 +423,30 @@ export async function registerPublicChatRoutes(
               })
             ]);
 
-            const match = matchBotReplyDetailed({
-              message: trimmedBody,
-              products: activeProducts.map((p) => ({
-                id: p.id,
-                name: p.name,
-                priceVnd: formatVndBigInt(p.priceVnd),
-                emoji: p.emoji,
-                description: p.description
-              })),
-              rules: enabledRules.map((r) => ({
-                id: r.id,
-                keywords: r.keywords,
-                answer: r.answer,
-                priority: r.priority
-              })),
-              fallbackReply: shop.fallbackReply
-            });
+            const smartResult = await resolveControlledBotReply(
+              tx,
+              config,
+              aiProvider,
+              {
+                shop,
+                channel: "web",
+                chatSessionId: freshSession.id,
+                message: trimmedBody,
+                products: activeProducts.map((p) => ({
+                  id: p.id,
+                  name: p.name,
+                  priceVnd: formatVndBigInt(p.priceVnd),
+                  emoji: p.emoji,
+                  description: p.description
+                })),
+                rules: enabledRules.map((r) => ({
+                  id: r.id,
+                  keywords: r.keywords,
+                  answer: r.answer,
+                  priority: r.priority
+                }))
+              }
+            );
 
             const botTime = new Date(now.getTime() + 1);
             const botMsg = await tx.chatMessage.create({
@@ -413,21 +454,31 @@ export async function registerPublicChatRoutes(
                 shopId: shop.id,
                 chatSessionId: freshSession.id,
                 senderType: "bot",
-                body: match.reply,
+                body: smartResult.reply,
                 createdAt: botTime
               }
             });
 
-            const nextStatus =
-              match.matchedBy === "fallback" ? "waiting_shop" : "open";
+            if (smartResult.switchToHumanMode) {
+              await tx.chatSessionEvent.create({
+                data: {
+                  shopId: shop.id,
+                  chatSessionId: freshSession.id,
+                  eventType: "customer_requested_human",
+                  detail: "Khách yêu cầu gặp chủ shop/nhân viên"
+                }
+              });
+            }
+
             const updatedSession = await tx.chatSession.update({
               where: { id: freshSession.id },
               data: {
-                status: nextStatus,
+                status: smartResult.escalateToShop ? "waiting_shop" : "open",
+                ...(smartResult.switchToHumanMode ? { handlingMode: "human" } : {}),
                 closedAt: null,
                 unreadForShop: { increment: 1 },
                 lastMessageAt: botTime,
-                lastMessagePreview: truncatePreview(match.reply)
+                lastMessagePreview: truncatePreview(smartResult.reply)
               }
             });
 
@@ -465,8 +516,7 @@ export async function registerPublicChatRoutes(
           "Visitor sent chat message"
         );
 
-        const lastCreated =
-          txResult.messages[txResult.messages.length - 1]!;
+        const lastCreated = txResult.messages[txResult.messages.length - 1]!;
 
         return reply.status(201).send({
           data: {

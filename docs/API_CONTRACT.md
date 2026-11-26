@@ -149,6 +149,13 @@ Invalid transition returns 409; successful update and `order_events` insert happ
 - `GET /admin/integrations`, `PUT /admin/integrations/messenger`, `POST /admin/integrations/messenger/disconnect`.
 - `GET /admin/outbound-messages`, `POST /admin/outbound-messages/retry` (đối soát & gửi lại tin lỗi từ hàng đợi outbox).
 
+## M4 endpoints — Multi-Shop RBAC, Audit Trail & Controlled AI (`feat/m4-multishop-controlled-ai`)
+
+- Multi-shop storefront routing: các endpoint `/public/*` chấp nhận tham số tùy chọn `?shop=<slug>` (hoặc header `X-Shop-Slug`); bỏ trống mặc định về shop chính.
+- Session & Shop Switcher: `POST /admin/session/switch-shop` (`{ shopId }`), `POST /admin/shops` (`owner` tạo thêm cửa hàng mới).
+- Nhân sự & Phân quyền (`owner` only): `GET /admin/members`, `POST /admin/invitations`, `POST /admin/invitations/accept`, `POST /admin/members/{id}/revoke`, `GET /admin/audit-logs`.
+- Trợ lý AI có kiểm soát (`owner` quản lý): `GET /admin/ai/settings`, `PATCH /admin/ai/settings`, `GET /admin/ai/metrics` (tỷ lệ giải quyết, số lần chặn bịa giá/tồn kho, token/chi phí và lịch sử câu hỏi).
+
 ## Contract change rule
 
 Update this document and route validation schemas in the same change. Treat removing/renaming fields, changing money representation, changing status values or weakening auth as breaking changes; introduce a new API version or migration plan. Before release, automated contract checks should verify examples/status codes against the running API.

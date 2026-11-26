@@ -3,8 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cài đặt cửa hàng — Quản trị Mino</title>
-<meta name="description" content="Quản lý thông tin cửa hàng, danh mục sản phẩm và kịch bản từ khóa của bot.">
+<title>Cài đặt cửa hàng, Nhân sự &amp; AI — Quản trị Mino</title>
+<meta name="description" content="Quản lý đa cửa hàng, danh mục sản phẩm, luật từ khóa, kênh Messenger, trợ lý AI có kiểm soát và phân quyền nhân viên.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚙️</text></svg>">
 <style>
   :root{
@@ -20,59 +20,59 @@
   body{font-family:"Inter","Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;
     background:var(--bg);color:var(--chu);line-height:1.6;font-size:15px}
   a{color:var(--xanh-dam);text-decoration:none}
-  .khung{max-width:920px;margin:0 auto;padding:0 20px}
+  .khung{max-width:940px;margin:0 auto;padding:0 20px}
 
   .top{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.95);backdrop-filter:blur(8px);
     border-bottom:1px solid var(--vien)}
-  .top .khung{display:flex;align-items:center;gap:12px;height:60px;flex-wrap:wrap}
+  .top .khung{display:flex;align-items:center;gap:12px;min-height:60px;flex-wrap:wrap;padding-top:6px;padding-bottom:6px}
   .logo{font-weight:800;display:flex;align-items:center;gap:8px;color:var(--chu)}
   .logo .dau{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--xanh),var(--tim));
     color:#fff;display:grid;place-items:center;font-size:15px}
-  .top nav{margin-left:auto;display:flex;align-items:center;gap:16px;font-size:.9rem;font-weight:600}
+  .top nav{margin-left:auto;display:flex;align-items:center;gap:14px;font-size:.88rem;font-weight:600;flex-wrap:wrap}
   .top nav a{color:var(--mo)}
   .top nav a:hover{color:var(--xanh)}
 
   .btn{
     border:none;border-radius:10px;padding:9px 16px;font:inherit;font-weight:700;cursor:pointer;
-    font-size:.9rem;transition:filter .15s ease;
+    font-size:.88rem;transition:filter .15s ease;
   }
   .btn:disabled{opacity:.6;cursor:not-allowed}
   .btn-chinh{background:linear-gradient(135deg,var(--xanh),var(--tim));color:#fff}
   .btn-vien{background:#fff;border:1px solid var(--vien);color:var(--chu)}
   .btn-do{background:var(--do-nen);color:var(--do);border:1px solid #fecaca}
 
-  .hero{text-align:center;padding:30px 0 8px}
-  .hero h1{font-size:1.65rem;font-weight:800}
+  .hero{text-align:center;padding:28px 0 8px}
+  .hero h1{font-size:1.6rem;font-weight:800}
   .hero p{color:var(--mo);margin-top:4px}
 
   .card{background:var(--card);border:1px solid var(--vien);border-radius:18px;
     padding:22px 24px;margin:18px 0}
-  .card h2{font-size:1.15rem;display:flex;align-items:center;gap:10px;margin-bottom:4px}
+  .card h2{font-size:1.14rem;display:flex;align-items:center;gap:10px;margin-bottom:4px}
   .card h2 .so{width:28px;height:28px;border-radius:8px;flex:none;
     background:linear-gradient(135deg,var(--xanh),var(--tim));color:#fff;
     display:grid;place-items:center;font-size:.85rem}
   .card .goi-y{color:var(--mo);font-size:.88rem;margin-bottom:14px}
 
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-  @media (max-width:680px){.grid2{grid-template-columns:1fr}}
+  .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0}
+  @media (max-width:740px){.grid2,.grid4{grid-template-columns:1fr}}
   label{display:block;font-weight:700;font-size:.86rem;margin:10px 0 4px}
   input[type=text],input[type=email],input[type=password],input[type=number],textarea,select{
     width:100%;padding:9px 12px;border:1px solid var(--vien);border-radius:10px;
-    font:inherit;font-size:.93rem;background:#fbfcff}
+    font:inherit;font-size:.92rem;background:#fbfcff}
   input:focus,textarea:focus,select:focus{outline:2px solid var(--xanh);border-color:transparent}
 
-  .thong-bao{display:none;border-radius:10px;padding:10px 14px;font-weight:600;margin:12px 0;font-size:.9rem}
+  .thong-bao{display:none;border-radius:10px;padding:10px 14px;font-weight:600;margin:12px 0;font-size:.88rem;word-break:break-word}
   .thong-bao.ok{display:block;background:var(--luc-nen);color:#14532d}
   .thong-bao.loi{display:block;background:var(--do-nen);color:var(--do)}
+  .thong-bao.canh-bao{display:block;background:var(--cam-nen);color:var(--cam-chu)}
 
   .hang-item{
     background:#f8faff;border:1px solid var(--vien);border-radius:14px;padding:14px;margin-bottom:12px;
   }
   .hang-sp-grid{display:grid;grid-template-columns:72px 1.4fr 1fr 130px;gap:10px;align-items:end}
   .hang-hd-grid{display:grid;grid-template-columns:1.4fr 110px 120px;gap:10px;align-items:end}
-  @media (max-width:740px){
-    .hang-sp-grid,.hang-hd-grid{grid-template-columns:1fr}
-  }
+  @media (max-width:740px){.hang-sp-grid,.hang-hd-grid{grid-template-columns:1fr}}
   .hang-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}
 
   .kenh{display:flex;gap:14px;align-items:center;background:#f8faff;border:1px solid var(--vien);
@@ -81,15 +81,18 @@
   .trang-thai.dang{background:var(--luc-nen);color:#15803d}
   .trang-thai.cho{background:#eef2f7;color:var(--mo)}
 
-  /* LOGIN MODAL / GUARD */
+  .kpi-mini{background:#f8faff;border:1px solid var(--vien);border-radius:12px;padding:11px 13px}
+  .kpi-mini span{display:block;font-size:.78rem;color:var(--mo)}
+  .kpi-mini b{font-size:1.15rem;color:var(--chu)}
+
   .phu-login{
     position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:100;
     display:none;place-items:center;padding:16px;
   }
   .phu-login.mo{display:grid}
   .hop-login{
-    background:#fff;border-radius:18px;padding:26px;width:100%;max-width:400px;
-    box-shadow:0 20px 50px rgba(15,23,42,.25);
+    background:#fff;border-radius:18px;padding:24px;width:100%;max-width:420px;
+    box-shadow:0 20px 50px rgba(15,23,42,.25);max-height:92vh;overflow:auto;
   }
   footer{background:var(--toi);color:#c3cde0;text-align:center;padding:22px 0;margin-top:30px;font-size:.88rem}
   footer a{color:#fff}
@@ -99,10 +102,11 @@
 
 <header class="top">
   <div class="khung">
-    <a class="logo" href="index.html"><span class="dau">🧁</span><span id="nav-shop-name">Cửa hàng của Mino</span></a>
+    <a class="logo" id="storefront-link" href="index.html"><span class="dau">🧁</span><span id="nav-shop-name">Cửa hàng của Mino</span></a>
     <nav aria-label="Điều hướng quản trị">
-      <a href="index.html">Trang bán hàng</a>
-      <a href="admin.html">📦 Quản lý đơn</a>
+      <select id="shop-switcher" aria-label="Chọn cửa hàng đang quản lý" style="display:none;width:auto;padding:5px 10px;font-weight:700"></select>
+      <a id="nav-storefront-url" href="index.html">Trang bán hàng</a>
+      <a href="admin.html">📦 Đơn &amp; Chat</a>
       <a href="huong-dan.html">Hướng dẫn</a>
       <span id="admin-email-badge" style="color:var(--xanh-dam);display:none"></span>
       <button type="button" class="btn btn-vien" id="btn-logout" style="display:none;padding:6px 12px;font-size:.82rem">Đăng xuất</button>
@@ -112,8 +116,12 @@
 
 <div class="khung" id="main-content" style="display:none">
   <div class="hero">
-    <h1>⚙️ Cài đặt cửa hàng &amp; danh mục</h1>
-    <p>Mọi thay đổi được lưu trực tiếp lên cơ sở dữ liệu máy chủ và áp dụng cho mọi khách truy cập.</p>
+    <h1>⚙️ Cài đặt cửa hàng, Kênh, AI &amp; Nhân sự</h1>
+    <p id="shop-slug-subtitle">Mọi thay đổi được lưu trực tiếp lên cơ sở dữ liệu máy chủ.</p>
+  </div>
+
+  <div id="staff-readonly-banner" class="thong-bao canh-bao" role="status">
+    Bạn đang đăng nhập với vai trò <b>Nhân viên (staff)</b> — bạn có toàn quyền xử lý Đơn hàng COD và Hộp thư Chat tại trang Quản lý đơn, nhưng chỉ Chủ shop (owner) mới được chỉnh sửa cấu hình cửa hàng, giá sản phẩm, AI và nhân sự.
   </div>
 
   <!-- 1. THÔNG TIN SHOP -->
@@ -214,7 +222,7 @@
         </div>
       </div>
       <label for="new-rule-ans">Câu trả lời *</label>
-      <textarea id="new-rule-ans" rows="2" required maxlength="1000" placeholder="Nội dung bot phản hồi (hiển thị dạng văn bản thuần)…"></textarea>
+      <textarea id="new-rule-ans" rows="2" required maxlength="1000" placeholder="Nội dung bot phản hồi…"></textarea>
       <div id="msg-add-rule" class="thong-bao" role="status"></div>
       <div class="hang-actions">
         <button type="submit" class="btn btn-chinh">Tạo kịch bản</button>
@@ -225,15 +233,15 @@
     <div id="rule-list"></div>
   </section>
 
-  <!-- 4. KÊNH NGOÀI -->
+  <!-- 4. KÊNH NGOÀI (M3) -->
   <section class="card">
     <h2><span class="so">4</span>Kênh bán hàng &amp; tích hợp (M3)</h2>
-    <p class="goi-y">Cấu hình kết nối kênh nhắn tin. Các khóa bí mật (`MESSENGER_VERIFY_TOKEN`, `MESSENGER_APP_SECRET`, `MESSENGER_PAGE_ACCESS_TOKEN`) chỉ lưu ở biến môi trường máy chủ, không bao giờ nhập hoặc hiển thị trên trình duyệt.</p>
+    <p class="goi-y">Các khóa bí mật (`MESSENGER_VERIFY_TOKEN`, `MESSENGER_APP_SECRET`, `MESSENGER_PAGE_ACCESS_TOKEN`) chỉ lưu ở biến môi trường máy chủ.</p>
 
     <div class="kenh">
       <div>
         <b>🌐 Website bán hàng, Đặt đơn COD &amp; Hộp thư Web Chat</b>
-        <div style="font-size:.86rem;color:var(--mo)">Đơn COD và hội thoại khách trên website hoạt động trực tiếp trên PostgreSQL.</div>
+        <div style="font-size:.86rem;color:var(--mo)">Hoạt động trực tiếp trên PostgreSQL.</div>
       </div>
       <span class="trang-thai dang">Đang hoạt động</span>
     </div>
@@ -272,23 +280,107 @@
         <button type="button" class="btn btn-vien" id="btn-outbox-retry">↻ Gửi lại các tin lỗi</button>
       </div>
     </div>
+  </section>
 
-    <div class="kenh" style="margin-top:10px">
-      <div>
-        <b>Zalo Official Account</b>
-        <div style="font-size:.86rem;color:var(--mo)">Theo nguyên tắc M3 chỉ tích hợp và vận hành ổn định từng kênh một (hiện ưu tiên Facebook Messenger).</div>
+  <!-- 5. TRỢ LÝ AI CÓ KIỂM SOÁT (M4) -->
+  <section class="card" id="owner-ai-section">
+    <h2><span class="so">5</span>Trợ lý AI có kiểm soát &amp; Chỉ số chất lượng (M4)</h2>
+    <p class="goi-y">AI chỉ chạy khi câu hỏi không khớp từ khóa; mọi câu trả lời đều bị kiểm duyệt tự động để chặn bịa giá, bịa tồn kho hoặc cam kết ngày giao.</p>
+
+    <form id="form-ai-settings">
+      <div class="grid2">
+        <div>
+          <label for="ai-enabled">Trạng thái tự động hóa AI</label>
+          <select id="ai-enabled">
+            <option value="false">Tắt (chỉ dùng luật từ khóa &amp; fallback)</option>
+            <option value="true">Bật AI có kiểm soát</option>
+          </select>
+        </div>
+        <div>
+          <label for="ai-budget">Ngân sách token tối đa / ngày</label>
+          <input type="number" id="ai-budget" min="0" max="100000000" step="1000" value="50000">
+        </div>
       </div>
-      <span class="trang-thai cho">Chưa kích hoạt</span>
+
+      <div style="display:flex;gap:18px;margin-top:12px;flex-wrap:wrap;align-items:center;font-size:.9rem">
+        <b>Kênh cho phép AI:</b>
+        <label style="margin:0;display:inline-flex;align-items:center;gap:6px"><input type="checkbox" id="ai-ch-web" value="web"> Website Chat</label>
+        <label style="margin:0;display:inline-flex;align-items:center;gap:6px"><input type="checkbox" id="ai-ch-messenger" value="messenger"> Facebook Messenger</label>
+        <span id="ai-key-status" style="color:var(--mo);font-size:.84rem"></span>
+      </div>
+
+      <div id="msg-ai-settings" class="thong-bao" role="status"></div>
+      <div class="hang-actions">
+        <button type="submit" class="btn btn-chinh">💾 Lưu cấu hình AI</button>
+      </div>
+    </form>
+
+    <div class="grid4" id="ai-kpis">
+      <div class="kpi-mini"><span>Tỷ lệ giải quyết</span><b id="kpi-ai-rate">0%</b></div>
+      <div class="kpi-mini"><span>Chuyển người thật</span><b id="kpi-ai-handoff">0</b></div>
+      <div class="kpi-mini"><span>Đã chặn bịa giá/kho</span><b id="kpi-ai-blocked">0</b></div>
+      <div class="kpi-mini"><span>Token hôm nay</span><b id="kpi-ai-tokens">0</b></div>
     </div>
+    <div id="ai-logs-list" style="max-height:220px;overflow-y:auto;font-size:.84rem"></div>
+  </section>
+
+  <!-- 6. ĐA SHOP, NHÂN VIÊN & AUDIT LOG (M4) -->
+  <section class="card" id="owner-team-section">
+    <h2><span class="so">6</span>Đa cửa hàng, Phân quyền Nhân viên &amp; Nhật ký quản trị (M4)</h2>
+    <p class="goi-y">Mời nhân viên xử lý đơn/chat (không có quyền đổi giá/cấu hình), tạo thêm cửa hàng mới và tra cứu lịch sử thao tác quản trị.</p>
+
+    <form id="form-invite-member" class="hang-item" style="background:#eff6ff;border-color:#bfdbfe">
+      <b style="font-size:.92rem;color:var(--xanh-dam)">👤 Mời thành viên vào cửa hàng hiện tại</b>
+      <div class="grid2">
+        <div>
+          <label for="inv-email">Email thành viên *</label>
+          <input type="email" id="inv-email" required placeholder="nhanvien@example.com">
+        </div>
+        <div>
+          <label for="inv-role">Vai trò *</label>
+          <select id="inv-role">
+            <option value="staff">Nhân viên (staff — xử lý đơn &amp; chat)</option>
+            <option value="owner">Đồng chủ shop (owner — toàn quyền)</option>
+          </select>
+        </div>
+      </div>
+      <div id="msg-invite" class="thong-bao" role="status"></div>
+      <div class="hang-actions">
+        <button type="submit" class="btn btn-chinh">Tạo mã lời mời</button>
+      </div>
+    </form>
+
+    <div id="members-list" style="margin-bottom:16px"></div>
+
+    <form id="form-create-shop" class="hang-item">
+      <b style="font-size:.92rem">🏪 Tạo thêm cửa hàng mới (Multi-shop)</b>
+      <div class="grid2">
+        <div>
+          <label for="new-shop-name">Tên cửa hàng mới *</label>
+          <input type="text" id="new-shop-name" required maxlength="120" placeholder="VD: Tiệm Trà Xanh">
+        </div>
+        <div>
+          <label for="new-shop-slug">Mã đường dẫn (slug) *</label>
+          <input type="text" id="new-shop-slug" required maxlength="64" placeholder="VD: tiem-tra-xanh">
+        </div>
+      </div>
+      <div id="msg-create-shop" class="thong-bao" role="status"></div>
+      <div class="hang-actions">
+        <button type="submit" class="btn btn-vien">＋ Tạo cửa hàng</button>
+      </div>
+    </form>
+
+    <h3 style="font-size:.96rem;margin:14px 0 8px">📋 Nhật ký thao tác quản trị (Audit Trail)</h3>
+    <div id="audit-logs-list" style="max-height:240px;overflow-y:auto;font-size:.84rem"></div>
   </section>
 </div>
 
-<!-- LOGIN OVERLAY (preserves unsaved form state if session expires) -->
+<!-- LOGIN & ACCEPT INVITATION MODAL -->
 <div class="phu-login" id="login-modal" role="dialog" aria-modal="true" aria-labelledby="login-title">
   <div class="hop-login">
     <h2 id="login-title" style="font-size:1.25rem;margin-bottom:4px">🔐 Đăng nhập quản trị</h2>
     <p id="login-desc" style="color:var(--mo);font-size:.88rem;margin-bottom:14px">
-      Sử dụng tài khoản chủ shop đã khởi tạo qua CLI quản trị.
+      Sử dụng tài khoản Chủ shop hoặc Nhân viên đã được cấp quyền.
     </p>
     <form id="form-login">
       <label for="login-email">Email quản trị</label>
@@ -298,16 +390,29 @@
       <div id="msg-login" class="thong-bao" role="alert"></div>
       <button type="submit" class="btn btn-chinh" id="btn-login-submit" style="width:100%;margin-top:14px">Đăng nhập</button>
     </form>
+
+    <details style="margin-top:16px;border-top:1px solid var(--vien);padding-top:12px;font-size:.88rem">
+      <summary style="cursor:pointer;font-weight:700;color:var(--xanh-dam)">📩 Nhận lời mời tham gia cửa hàng</summary>
+      <form id="form-accept-invite" style="margin-top:8px">
+        <label for="acc-token">Mã lời mời (Invite Token) *</label>
+        <input type="text" id="acc-token" required placeholder="Dán mã mời từ chủ shop…">
+        <label for="acc-password">Đặt mật khẩu (tối thiểu 12 ký tự) *</label>
+        <input type="password" id="acc-password" required minlength="12">
+        <div id="msg-accept-invite" class="thong-bao" role="alert"></div>
+        <button type="submit" class="btn btn-vien" style="width:100%;margin-top:10px">Kích hoạt quyền thành viên</button>
+      </form>
+    </details>
   </div>
 </div>
 
 <footer>
-  <div class="khung">Quản trị Mino — <a href="index.html">Trang bán hàng</a> · <a href="admin.html">Quản lý đơn hàng</a> · <a href="huong-dan.html">Hướng dẫn</a></div>
+  <div class="khung">Quản trị Mino — <a href="index.html">Trang bán hàng</a> · <a href="admin.html">Quản lý đơn &amp; Chat</a> · <a href="huong-dan.html">Hướng dẫn</a></div>
 </footer>
 
 <script>
 (() => {
   let csrfToken = null;
+  let currentUser = null;
   let initialLoaded = false;
 
   function showBanner(id, type, text) {
@@ -322,6 +427,18 @@
     if (!el) return;
     el.className = "thong-bao";
     el.textContent = "";
+  }
+
+  function formatVnTime(isoStr) {
+    try {
+      return new Intl.DateTimeFormat("vi-VN", {
+        timeZone: "Asia/Ho_Chi_Minh",
+        dateStyle: "short",
+        timeStyle: "short"
+      }).format(new Date(isoStr));
+    } catch {
+      return isoStr;
+    }
   }
 
   function openLoginModal(reasonText) {
@@ -360,7 +477,11 @@
     }
 
     const payload = await res.json().catch(() => null);
-    if (res.status === 401 && path !== "/api/v1/admin/session") {
+    if (
+      res.status === 401 &&
+      path !== "/api/v1/admin/session" &&
+      path !== "/api/v1/admin/invitations/accept"
+    ) {
       csrfToken = null;
       openLoginModal(
         "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại — nội dung bạn đang nhập trên trang vẫn được giữ nguyên."
@@ -375,13 +496,37 @@
     };
   }
 
-  function setLoggedInHeader(user) {
+  function applySessionHeader(sessionData) {
+    csrfToken = sessionData.csrfToken;
+    currentUser = sessionData.user;
+    const isOwner = currentUser.role === "owner";
+
     const badge = document.getElementById("admin-email-badge");
     const btnLogout = document.getElementById("btn-logout");
-    badge.textContent = user.email;
+    badge.textContent = `${currentUser.email} (${isOwner ? "Owner" : "Staff"})`;
     badge.style.display = "inline";
     btnLogout.style.display = "inline-block";
     document.getElementById("main-content").style.display = "block";
+
+    document.getElementById("staff-readonly-banner").style.display = isOwner ? "none" : "block";
+    document.getElementById("owner-ai-section").style.display = isOwner ? "block" : "none";
+    document.getElementById("owner-team-section").style.display = isOwner ? "block" : "none";
+
+    const switcher = document.getElementById("shop-switcher");
+    switcher.replaceChildren();
+    const memberships = sessionData.memberships || [];
+    if (memberships.length > 0) {
+      memberships.forEach((m) => {
+        const opt = document.createElement("option");
+        opt.value = m.shopId;
+        opt.textContent = `🏪 ${m.shopName} (${m.role === "owner" ? "Owner" : "Staff"})`;
+        if (m.shopId === currentUser.shopId) opt.selected = true;
+        switcher.appendChild(opt);
+      });
+      switcher.style.display = "inline-block";
+    } else {
+      switcher.style.display = "none";
+    }
   }
 
   async function loadAllAdminProducts() {
@@ -498,6 +643,7 @@
           return;
         }
         showBanner("msg-products", "ok", `Đã cập nhật sản phẩm "${r.data.name}".`);
+        if (currentUser?.role === "owner") await loadOwnerExtras();
       });
 
       actions.appendChild(saveBtn);
@@ -649,6 +795,102 @@
       `Hàng đợi Outbox: Đang chờ (${ob.pendingCount}) · Chờ thử lại (${ob.failedCount}) · Lỗi dừng retry (${ob.deadLetterCount})`;
   }
 
+  async function loadOwnerExtras() {
+    if (!currentUser || currentUser.role !== "owner") return;
+
+    const [aiSetRes, aiMetRes, memRes, auditRes] = await Promise.all([
+      apiRequest("/api/v1/admin/ai/settings"),
+      apiRequest("/api/v1/admin/ai/metrics"),
+      apiRequest("/api/v1/admin/members"),
+      apiRequest("/api/v1/admin/audit-logs?limit=25")
+    ]);
+
+    if (aiSetRes.ok && aiSetRes.data) {
+      const s = aiSetRes.data;
+      document.getElementById("ai-enabled").value = String(s.aiEnabled);
+      document.getElementById("ai-budget").value = String(s.aiDailyTokenBudget);
+      document.getElementById("ai-ch-web").checked = (s.aiChannels || []).includes("web");
+      document.getElementById("ai-ch-messenger").checked = (s.aiChannels || []).includes("messenger");
+      document.getElementById("ai-key-status").textContent =
+        `Model: ${s.model} · AI_API_KEY: ${s.providerKeyConfigured ? "Đã cấu hình ✓" : "Chưa cấu hình (AI sẽ dùng fallback)"}`;
+    }
+
+    if (aiMetRes.ok && aiMetRes.data) {
+      const m = aiMetRes.data;
+      document.getElementById("kpi-ai-rate").textContent = `${m.resolutionRatePct}% (${m.answeredGroundedCount}/${m.totalFallbackInteractions})`;
+      document.getElementById("kpi-ai-handoff").textContent = String(m.handoffCount);
+      document.getElementById("kpi-ai-blocked").textContent = String(m.blockedHallucinationCount);
+      document.getElementById("kpi-ai-tokens").textContent = `${m.tokensUsedToday.toLocaleString("vi-VN")} / ${m.dailyTokenBudget.toLocaleString("vi-VN")}`;
+
+      const logBox = document.getElementById("ai-logs-list");
+      logBox.replaceChildren();
+      (m.recentLogs || []).forEach((l) => {
+        const item = document.createElement("div");
+        item.className = "hang-item";
+        item.style.padding = "9px 12px";
+        item.style.marginBottom = "6px";
+        const top = document.createElement("div");
+        top.style.fontWeight = "700";
+        top.textContent = `[${l.outcome}] (${l.channel}) Hỏi: "${l.customerQueryPreview}"`;
+        const sub = document.createElement("div");
+        sub.style.color = "var(--mo)";
+        sub.textContent = `Đáp: "${l.replyPreview}" · ${formatVnTime(l.createdAt)}`;
+        item.append(top, sub);
+        logBox.appendChild(item);
+      });
+    }
+
+    if (memRes.ok && memRes.data) {
+      const mBox = document.getElementById("members-list");
+      mBox.replaceChildren();
+      (memRes.data.members || []).forEach((mem) => {
+        const row = document.createElement("div");
+        row.className = "kenh";
+        const info = document.createElement("div");
+        const b = document.createElement("b");
+        b.textContent = `${mem.email} (${mem.role === "owner" ? "Chủ shop" : "Nhân viên"})`;
+        const sub = document.createElement("div");
+        sub.style.fontSize = ".82rem";
+        sub.style.color = "var(--mo)";
+        sub.textContent = mem.status === "active" ? "Đang hoạt động" : `Đã thu hồi quyền (${formatVnTime(mem.revokedAt)})`;
+        info.append(b, sub);
+        row.appendChild(info);
+
+        if (mem.status === "active" && mem.adminUserId !== currentUser.id) {
+          const revBtn = document.createElement("button");
+          revBtn.type = "button";
+          revBtn.className = "btn btn-do";
+          revBtn.style.marginLeft = "auto";
+          revBtn.textContent = "Thu hồi quyền";
+          revBtn.addEventListener("click", async () => {
+            const r = await apiRequest(`/api/v1/admin/members/${mem.id}/revoke`, {
+              method: "POST"
+            });
+            if (!r.ok) {
+              showBanner("msg-invite", "loi", r.errorMessage);
+              return;
+            }
+            await loadOwnerExtras();
+          });
+          row.appendChild(revBtn);
+        }
+        mBox.appendChild(row);
+      });
+    }
+
+    if (auditRes.ok) {
+      const aBox = document.getElementById("audit-logs-list");
+      aBox.replaceChildren();
+      (auditRes.data || []).forEach((a) => {
+        const row = document.createElement("div");
+        row.style.padding = "7px 10px";
+        row.style.borderBottom = "1px solid var(--vien)";
+        row.textContent = `${formatVnTime(a.createdAt)} · [${a.action}] ${a.summary || ""} (${a.actorAdmin?.email || "system"})`;
+        aBox.appendChild(row);
+      });
+    }
+  }
+
   async function loadDashboardData() {
     const [shopRes, products, rulesRes, intRes] = await Promise.all([
       apiRequest("/api/v1/admin/shop"),
@@ -660,6 +902,12 @@
     if (shopRes.ok && shopRes.data) {
       const s = shopRes.data;
       document.getElementById("nav-shop-name").textContent = s.name;
+      const sfUrl = s.slug === "cua-hang-mino" ? "index.html" : `index.html?shop=${encodeURIComponent(s.slug)}`;
+      document.getElementById("storefront-link").href = sfUrl;
+      document.getElementById("nav-storefront-url").href = sfUrl;
+      document.getElementById("shop-slug-subtitle").textContent =
+        `Đang quản lý cửa hàng "${s.name}" (đường dẫn khách hàng: /${sfUrl})`;
+
       document.getElementById("shop-name").value = s.name;
       document.getElementById("bot-name").value = s.botName;
       document.getElementById("shop-phone").value = s.publicPhone || "";
@@ -668,16 +916,23 @@
     }
 
     renderProductsList(products);
-    if (rulesRes.ok) {
-      renderRulesList(rulesRes.data || []);
-    }
-    if (intRes.ok) {
-      renderIntegrationState(intRes.data);
-    }
+    if (rulesRes.ok) renderRulesList(rulesRes.data || []);
+    if (intRes.ok) renderIntegrationState(intRes.data);
+    await loadOwnerExtras();
     initialLoaded = true;
   }
 
   /* ===== EVENTS ===== */
+  document.getElementById("shop-switcher").addEventListener("change", async (e) => {
+    const r = await apiRequest("/api/v1/admin/session/switch-shop", {
+      method: "POST",
+      body: { shopId: e.target.value }
+    });
+    if (!r.ok || !r.data) return;
+    applySessionHeader(r.data);
+    await loadDashboardData();
+  });
+
   document.getElementById("form-login").addEventListener("submit", async (e) => {
     e.preventDefault();
     clearBanner("msg-login");
@@ -697,9 +952,8 @@
       return;
     }
 
-    csrfToken = r.data.csrfToken;
     document.getElementById("login-password").value = "";
-    setLoggedInHeader(r.data.user);
+    applySessionHeader(r.data);
     closeLoginModal();
 
     if (!initialLoaded) {
@@ -707,13 +961,34 @@
     }
   });
 
+  document.getElementById("form-accept-invite").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    clearBanner("msg-accept-invite");
+    const r = await apiRequest("/api/v1/admin/invitations/accept", {
+      method: "POST",
+      body: {
+        inviteToken: document.getElementById("acc-token").value.trim(),
+        password: document.getElementById("acc-password").value
+      }
+    });
+    if (!r.ok || !r.data) {
+      showBanner("msg-accept-invite", "loi", r.errorMessage);
+      return;
+    }
+    document.getElementById("login-email").value = r.data.email;
+    e.target.reset();
+    showBanner("msg-accept-invite", "ok", `Đã kích hoạt quyền (${r.data.role}) cho ${r.data.email}! Hãy đăng nhập ở trên.`);
+  });
+
   document.getElementById("btn-logout").addEventListener("click", async () => {
     await apiRequest("/api/v1/admin/session", { method: "DELETE" });
     csrfToken = null;
+    currentUser = null;
     initialLoaded = false;
     document.getElementById("main-content").style.display = "none";
     document.getElementById("admin-email-badge").style.display = "none";
     document.getElementById("btn-logout").style.display = "none";
+    document.getElementById("shop-switcher").style.display = "none";
     openLoginModal("Bạn đã đăng xuất an toàn.");
   });
 
@@ -739,6 +1014,7 @@
     }
     document.getElementById("nav-shop-name").textContent = r.data.name;
     showBanner("msg-shop", "ok", "Đã lưu thông tin cửa hàng thành công.");
+    await loadOwnerExtras();
   });
 
   document.getElementById("form-add-product").addEventListener("submit", async (e) => {
@@ -767,6 +1043,7 @@
     showBanner("msg-add-product", "ok", `Đã thêm sản phẩm "${r.data.name}".`);
     const products = await loadAllAdminProducts();
     renderProductsList(products);
+    await loadOwnerExtras();
   });
 
   document.getElementById("form-add-rule").addEventListener("submit", async (e) => {
@@ -798,6 +1075,7 @@
     showBanner("msg-add-rule", "ok", "Đã tạo kịch bản từ khóa mới.");
     const rulesRes = await apiRequest("/api/v1/admin/bot-rules");
     if (rulesRes.ok) renderRulesList(rulesRes.data || []);
+    await loadOwnerExtras();
   });
 
   document.getElementById("form-messenger").addEventListener("submit", async (e) => {
@@ -820,6 +1098,7 @@
     showBanner("msg-messenger", "ok", "Đã lưu và kích hoạt kết nối Facebook Messenger.");
     const intRes = await apiRequest("/api/v1/admin/integrations");
     if (intRes.ok) renderIntegrationState(intRes.data);
+    await loadOwnerExtras();
   });
 
   document.getElementById("btn-fb-disconnect").addEventListener("click", async () => {
@@ -834,6 +1113,7 @@
     showBanner("msg-messenger", "ok", "Đã ngắt kết nối Facebook Messenger.");
     const intRes = await apiRequest("/api/v1/admin/integrations");
     if (intRes.ok) renderIntegrationState(intRes.data);
+    await loadOwnerExtras();
   });
 
   document.getElementById("btn-outbox-retry").addEventListener("click", async () => {
@@ -858,6 +1138,76 @@
     if (intRes.ok) renderIntegrationState(intRes.data);
   });
 
+  document.getElementById("form-ai-settings").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    clearBanner("msg-ai-settings");
+    const aiChannels = [];
+    if (document.getElementById("ai-ch-web").checked) aiChannels.push("web");
+    if (document.getElementById("ai-ch-messenger").checked) aiChannels.push("messenger");
+
+    const r = await apiRequest("/api/v1/admin/ai/settings", {
+      method: "PATCH",
+      body: {
+        aiEnabled: document.getElementById("ai-enabled").value === "true",
+        aiChannels,
+        aiDailyTokenBudget: Number(document.getElementById("ai-budget").value)
+      }
+    });
+    if (!r.ok) {
+      showBanner("msg-ai-settings", "loi", r.errorMessage);
+      return;
+    }
+    showBanner("msg-ai-settings", "ok", "Đã cập nhật cấu hình trợ lý AI có kiểm soát.");
+    await loadOwnerExtras();
+  });
+
+  document.getElementById("form-invite-member").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    clearBanner("msg-invite");
+    const r = await apiRequest("/api/v1/admin/invitations", {
+      method: "POST",
+      body: {
+        email: document.getElementById("inv-email").value.trim(),
+        role: document.getElementById("inv-role").value
+      }
+    });
+    if (!r.ok || !r.data) {
+      showBanner("msg-invite", "loi", r.errorMessage);
+      return;
+    }
+    e.target.reset();
+    showBanner(
+      "msg-invite",
+      "ok",
+      `Đã tạo mã mời một lần cho ${r.data.email} (${r.data.role}): ${r.data.inviteToken} — Hãy gửi riêng mã này cho thành viên (hết hạn lúc ${formatVnTime(r.data.expiresAt)}).`
+    );
+    await loadOwnerExtras();
+  });
+
+  document.getElementById("form-create-shop").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    clearBanner("msg-create-shop");
+    const r = await apiRequest("/api/v1/admin/shops", {
+      method: "POST",
+      body: {
+        name: document.getElementById("new-shop-name").value.trim(),
+        slug: document.getElementById("new-shop-slug").value.trim().toLowerCase()
+      }
+    });
+    if (!r.ok || !r.data) {
+      showBanner("msg-create-shop", "loi", r.errorMessage);
+      return;
+    }
+    e.target.reset();
+    showBanner(
+      "msg-create-shop",
+      "ok",
+      `Đã tạo cửa hàng "${r.data.name}"! Đường dẫn bán hàng: /index.html?shop=${r.data.slug}`
+    );
+    const sessionRes = await apiRequest("/api/v1/admin/session");
+    if (sessionRes.ok && sessionRes.data) applySessionHeader(sessionRes.data);
+  });
+
   /* ===== INITIAL SESSION CHECK ===== */
   (async () => {
     const sessionRes = await apiRequest("/api/v1/admin/session");
@@ -865,8 +1215,7 @@
       openLoginModal();
       return;
     }
-    csrfToken = sessionRes.data.csrfToken;
-    setLoggedInHeader(sessionRes.data.user);
+    applySessionHeader(sessionRes.data);
     await loadDashboardData();
   })();
 })();

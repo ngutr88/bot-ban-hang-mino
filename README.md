@@ -12,11 +12,11 @@ Mino là ứng dụng bán hàng trực tuyến gọn nhẹ cho một cửa hàn
 |---|---|---|
 | `public/index.html` | 🛒 Khách hàng | Trang bán hàng kết nối API: danh sách sản phẩm đang bán, Web Chat lưu trên server (hỗ trợ cả bot và chủ shop trả lời trực tiếp), đặt đơn COD có chống gửi trùng (`Idempotency-Key`) |
 | `public/admin.html` | 📦 Chủ shop | Bảng điều khiển 2 chế độ (yêu cầu đăng nhập): **Đơn hàng COD** và **Hộp thư Chat (Inbox)** có tiếp quản (human takeover), ghi chú nội bộ tách biệt và tự khớp đơn theo SĐT |
-| `public/caidat.html` | ⚙️ Chủ shop | Cài đặt cửa hàng (yêu cầu đăng nhập): cập nhật tên/liên hệ shop, thêm/sửa/ẩn sản phẩm và quản lý bảng luật từ khóa của bot |
+| `public/caidat.html` | ⚙️ Chủ shop | Cài đặt cửa hàng (RBAC `owner`/`staff`): chuyển đổi đa shop, cấu hình sản phẩm/từ khóa, kết nối Messenger, bật/tắt **AI có kiểm soát** theo kênh, mời/thu hồi nhân viên và xem nhật ký `audit_logs` |
 | `public/huong-dan.html` | 📘 Mọi người | Hướng dẫn khởi tạo môi trường, tạo tài khoản chủ shop và quy trình xử lý đơn COD |
-| `src/` + `prisma/` | 🖥️ Backend | Fastify API (`/api/v1`), xác thực phiên cookie `HttpOnly` + CSRF/Origin, Web Chat, tích hợp webhook Facebook Messenger (HMAC-SHA256 + Outbox retry), Prisma ORM và schema/migration PostgreSQL |
+| `src/` + `prisma/` | 🖥️ Backend | Fastify API (`/api/v1`), đa cửa hàng (`?shop=<slug>`), phân quyền `owner`/`staff`, Web Chat, webhook Messenger (HMAC-SHA256 + Outbox), **Controlled AI Guardrails**, Prisma ORM và PostgreSQL |
 
-> **Phạm vi giai đoạn sau (chưa kích hoạt ở M3):** Các kênh phụ bổ sung (như Zalo OA) và đa cửa hàng / AI có kiểm soát (M4).
+> **Trạng thái lộ trình:** Đã hoàn thành đầy đủ **M1 → M2 → M3 → M4** theo [kế hoạch triển khai](docs/IMPLEMENTATION_PLAN.md).
 
 ---
 

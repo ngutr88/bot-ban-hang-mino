@@ -133,11 +133,10 @@ M0 Chốt quyết định → M1 Nền tảng + đơn COD dùng chung → Releas
 
 **Cổng M3:** webhook lặp không tạo duplicate; signature sai bị từ chối; outbound failure có thể retry/đối soát; shop có thể ngắt integration.
 
-## M4 — Nhiều shop / AI (chỉ khi có nhu cầu)
+## M4 — Nhiều shop / AI có kiểm soát (`feat/m4-multishop-controlled-ai`)
 
-- Nhiều shop: user-membership, vai trò, tenant-isolation checks, mời/thu hồi, audit trail, billing nếu có thương mại.
-- AI: benchmark bộ câu hỏi thật đã ẩn danh; retrieval từ catalog/rules; không tự quyết giá/tồn kho; human handoff; theo dõi chi phí và chất lượng.
-- Không bật M4 chỉ để “có AI” hoặc “scale”; cần có chỉ số và người chịu trách nhiệm.
+- [x] Nhiều shop: `shop_memberships` (`owner`/`staff`), vai trò RBAC (`requireOwner`/`requireAdmin`), kiểm tra cô lập tenant trên mọi truy vấn, mời (`shop_invitations` lưu hash token) / thu hồi quyền (`revoke` hủy phiên ngay), chuyển shop (`switch-shop`), tạo shop mới (`?shop=<slug>`) và nhật ký thao tác quản trị (`audit_logs`).
+- [x] AI có kiểm soát: chạy sau luật từ khóa xác định; chỉ lấy dữ liệu từ catalog/rules authoritative; bộ chặn hậu kiểm (`validateAiReplySafety`) ngăn tuyệt đối việc tự bịa giá/tồn kho/ngày giao; tự động chuyển người thật khi khách yêu cầu hoặc độ tin cậy thấp; theo dõi tỷ lệ giải quyết, chi phí micro-USD, hạn mức token ngày và công tắc tắt theo từng shop/kênh (`ai_interaction_logs`).
 
 ## Definition of Done cho từng ticket
 

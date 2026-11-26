@@ -15,6 +15,7 @@ import { clampLimit } from "../../shared/pagination.js";
 import type { createAuthGuards } from "../auth/auth.guard.js";
 import type { MessengerAdapter } from "./messenger-adapter.js";
 import { dispatchOutboundMessage } from "./outbox.service.js";
+import { recordAuditLog } from "../audit/audit.service.js";
 
 const UUID_PATTERN =
   "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$";
@@ -102,7 +103,7 @@ export async function registerAdminIntegrationRoutes(
   }>(
     "/api/v1/admin/integrations/messenger",
     {
-      preValidation: [guards.requireAdminMutation],
+      preValidation: [guards.requireOwnerMutation],
       schema: {
         body: {
           type: "object",
@@ -132,28 +133,39 @@ export async function registerAdminIntegrationRoutes(
       }
 
       try {
-        const saved = await prisma.channelIntegration.upsert({
-          where: {
-            shopId_provider: {
+        const saved = await prisma.$transaction(async (tx) => {
+          const s = await tx.channelIntegration.upsert({
+            where: {
+              shopId_provider: {
+                shopId: auth.shopId,
+                provider: "messenger"
+              }
+            },
+            update: {
+              externalAccountId,
+              displayName,
+              status: "active",
+              lastErrorCode: null,
+              disconnectedAt: null
+            },
+            create: {
               shopId: auth.shopId,
-              provider: "messenger"
+              provider: "messenger",
+              externalAccountId,
+              displayName,
+              status: "active",
+              secretRef: "ENV_MESSENGER_DEFAULT"
             }
-          },
-          update: {
-            externalAccountId,
-            displayName,
-            status: "active",
-            lastErrorCode: null,
-            disconnectedAt: null
-          },
-          create: {
+          });
+          await recordAuditLog(tx, {
             shopId: auth.shopId,
-            provider: "messenger",
-            externalAccountId,
-            displayName,
-            status: "active",
-            secretRef: "ENV_MESSENGER_DEFAULT"
-          }
+            actorAdminUserId: auth.adminUserId,
+            action: "integration.messenger_connected",
+            targetType: "channel_integration",
+            targetId: s.id,
+            summary: `Kết nối Fanpage "${displayName}" (${externalAccountId})`
+          });
+          return s;
         });
 
         request.log.info(
@@ -184,7 +196,7 @@ export async function registerAdminIntegrationRoutes(
 
   app.post(
     "/api/v1/admin/integrations/messenger/disconnect",
-    { preValidation: [guards.requireAdminMutation] },
+    { preValidation: [guards.requireOwnerMutation] },
     async (request, reply) => {
       const auth = guards.getAdminContext(request);
       const existing = await prisma.channelIntegration.findUnique({
@@ -200,12 +212,23 @@ export async function registerAdminIntegrationRoutes(
         throw notFoundError("Chưa có tích hợp Messenger nào để ngắt kết nối.");
       }
 
-      const updated = await prisma.channelIntegration.update({
-        where: { id: existing.id },
-        data: {
-          status: "disconnected",
-          disconnectedAt: new Date()
-        }
+      const updated = await prisma.$transaction(async (tx) => {
+        const u = await tx.channelIntegration.update({
+          where: { id: existing.id },
+          data: {
+            status: "disconnected",
+            disconnectedAt: new Date()
+          }
+        });
+        await recordAuditLog(tx, {
+          shopId: auth.shopId,
+          actorAdminUserId: auth.adminUserId,
+          action: "integration.messenger_disconnected",
+          targetType: "channel_integration",
+          targetId: u.id,
+          summary: `Ngắt kết nối Fanpage "${u.displayName}"`
+        });
+        return u;
       });
 
       request.log.info(

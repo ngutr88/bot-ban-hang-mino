@@ -5,9 +5,13 @@ import { assertSameOrigin } from "../../plugins/security.js";
 import {
   SESSION_COOKIE_NAME,
   loginAdmin,
-  revokeSession
+  revokeSession,
+  switchSessionActiveShop
 } from "./auth.service.js";
 import type { createAuthGuards } from "./auth.guard.js";
+
+const UUID_PATTERN =
+  "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$";
 
 export async function registerAuthRoutes(
   app: FastifyInstance,
@@ -54,7 +58,8 @@ export async function registerAuthRoutes(
         {
           event: "admin_login_succeeded",
           adminUserId: session.user.id,
-          shopId: session.user.shopId
+          shopId: session.user.shopId,
+          role: session.user.role
         },
         "Admin user authenticated"
       );
@@ -70,6 +75,7 @@ export async function registerAuthRoutes(
       return reply.status(200).send({
         data: {
           user: session.user,
+          memberships: session.memberships,
           csrfToken: session.csrfToken,
           expiresAt: session.expiresAt.toISOString()
         },
@@ -90,8 +96,53 @@ export async function registerAuthRoutes(
           user: {
             id: auth.adminUserId,
             email: auth.email,
-            shopId: auth.shopId
+            shopId: auth.shopId,
+            role: auth.role
           },
+          memberships: auth.memberships,
+          csrfToken: auth.csrfToken,
+          expiresAt: auth.expiresAt.toISOString()
+        },
+        requestId: request.id
+      });
+    }
+  );
+
+  app.post<{
+    Body: { shopId: string };
+  }>(
+    "/api/v1/admin/session/switch-shop",
+    {
+      preValidation: [guards.requireAdminMutation],
+      schema: {
+        body: {
+          type: "object",
+          additionalProperties: false,
+          required: ["shopId"],
+          properties: {
+            shopId: { type: "string", pattern: UUID_PATTERN }
+          }
+        }
+      }
+    },
+    async (request, reply) => {
+      const auth = guards.getAdminContext(request);
+      const switched = await switchSessionActiveShop(
+        prisma,
+        auth.sessionId,
+        auth.adminUserId,
+        request.body.shopId
+      );
+
+      return reply.status(200).send({
+        data: {
+          user: {
+            id: auth.adminUserId,
+            email: auth.email,
+            shopId: switched.activeMembership.shopId,
+            role: switched.activeMembership.role
+          },
+          memberships: switched.memberships,
           csrfToken: auth.csrfToken,
           expiresAt: auth.expiresAt.toISOString()
         },

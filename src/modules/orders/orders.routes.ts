@@ -25,6 +25,7 @@ import {
 import type { createAuthGuards } from "../auth/auth.guard.js";
 import { constantTimeBytesEqual } from "../auth/crypto.js";
 import { getPrimaryPublicShop } from "../shop/shop.routes.js";
+import { recordAuditLog } from "../audit/audit.service.js";
 import {
   canonicalizeCreateOrderInput,
   generateOrderNo,
@@ -124,6 +125,7 @@ export async function registerOrderRoutes(
   const { prisma, config, guards } = deps;
 
   app.post<{
+    Querystring: { shop?: string };
     Body: CreateOrderBodyInput;
   }>(
     "/api/v1/public/orders",
@@ -135,6 +137,13 @@ export async function registerOrderRoutes(
         }
       },
       schema: {
+        querystring: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            shop: { type: "string", maxLength: 64 }
+          }
+        },
         body: {
           type: "object",
           additionalProperties: false,
@@ -182,7 +191,7 @@ export async function registerOrderRoutes(
       const idempotencyKey = rawIdempotencyKey.trim();
 
       const canonical = canonicalizeCreateOrderInput(request.body);
-      const shop = await getPrimaryPublicShop(prisma);
+      const shop = await getPrimaryPublicShop(prisma, request);
 
       const existing = await prisma.order.findUnique({
         where: {
@@ -533,6 +542,15 @@ export async function registerOrderRoutes(
             newStatus: request.body.status,
             note: trimmedNote
           }
+        });
+
+        await recordAuditLog(tx, {
+          shopId: auth.shopId,
+          actorAdminUserId: auth.adminUserId,
+          action: "order.status_changed",
+          targetType: "order",
+          targetId: existing.id,
+          summary: `${existing.orderNo}: ${existing.status} -> ${request.body.status}`
         });
 
         return tx.order.update({

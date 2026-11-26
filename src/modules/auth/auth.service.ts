@@ -1,6 +1,7 @@
-import type { PrismaClient } from "@prisma/client";
+import type { PrismaClient, ShopMemberRole } from "@prisma/client";
 import type { AppConfig } from "../../config/env.js";
 import {
+  forbiddenError,
   unauthenticatedError,
   validationError
 } from "../../shared/errors.js";
@@ -15,11 +16,20 @@ import {
 
 export const SESSION_COOKIE_NAME = "mino_session";
 
+export interface UserShopMembershipSummary {
+  shopId: string;
+  shopSlug: string;
+  shopName: string;
+  role: ShopMemberRole;
+}
+
 export interface AdminAuthContext {
   sessionId: string;
   adminUserId: string;
   email: string;
   shopId: string;
+  role: ShopMemberRole;
+  memberships: UserShopMembershipSummary[];
   csrfToken: string;
   csrfTokenHash: Uint8Array;
   expiresAt: Date;
@@ -31,8 +41,13 @@ export function normalizeEmail(rawEmail: string): string {
 
 export async function createAdminUser(
   prisma: PrismaClient,
-  params: { shopId: string; email: string; password: string }
-): Promise<{ id: string; email: string; shopId: string }> {
+  params: {
+    shopId: string;
+    email: string;
+    password: string;
+    role?: ShopMemberRole;
+  }
+): Promise<{ id: string; email: string; shopId: string; role: ShopMemberRole }> {
   const emailNormalized = normalizeEmail(params.email);
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailNormalized) || emailNormalized.length > 254) {
     throw validationError("Địa chỉ email không hợp lệ.", [
@@ -46,20 +61,67 @@ export async function createAdminUser(
   }
 
   const passwordHash = await hashPassword(params.password);
-  const created = await prisma.adminUser.create({
-    data: {
-      shopId: params.shopId,
-      emailNormalized,
-      passwordHash,
-      status: "active"
-    }
+  const role = params.role ?? "owner";
+
+  const created = await prisma.$transaction(async (tx) => {
+    const user = await tx.adminUser.create({
+      data: {
+        shopId: params.shopId,
+        emailNormalized,
+        passwordHash,
+        status: "active"
+      }
+    });
+
+    await tx.shopMembership.upsert({
+      where: {
+        shopId_adminUserId: {
+          shopId: params.shopId,
+          adminUserId: user.id
+        }
+      },
+      update: {
+        role,
+        status: "active",
+        revokedAt: null
+      },
+      create: {
+        shopId: params.shopId,
+        adminUserId: user.id,
+        role,
+        status: "active"
+      }
+    });
+
+    return user;
   });
 
   return {
     id: created.id,
     email: created.emailNormalized,
-    shopId: created.shopId
+    shopId: created.shopId,
+    role
   };
+}
+
+async function loadActiveMemberships(
+  prisma: PrismaClient,
+  adminUserId: string
+): Promise<UserShopMembershipSummary[]> {
+  const rows = await prisma.shopMembership.findMany({
+    where: { adminUserId, status: "active" },
+    include: {
+      shop: { select: { id: true, slug: true, name: true } }
+    },
+    orderBy: { createdAt: "asc" }
+  });
+
+  return rows.map((m) => ({
+    shopId: m.shop.id,
+    shopSlug: m.shop.slug,
+    shopName: m.shop.name,
+    role: m.role
+  }));
 }
 
 export async function loginAdmin(
@@ -70,7 +132,8 @@ export async function loginAdmin(
   rawSessionToken: string;
   csrfToken: string;
   expiresAt: Date;
-  user: { id: string; email: string; shopId: string };
+  user: { id: string; email: string; shopId: string; role: ShopMemberRole };
+  memberships: UserShopMembershipSummary[];
 }> {
   const emailNormalized = normalizeEmail(params.email);
 
@@ -89,6 +152,14 @@ export async function loginAdmin(
     throw unauthenticatedError("Email hoặc mật khẩu không đúng.");
   }
 
+  const memberships = await loadActiveMemberships(prisma, user.id);
+  if (memberships.length === 0) {
+    throw unauthenticatedError("Tài khoản hiện không có quyền truy cập cửa hàng nào.");
+  }
+
+  const preferredMembership =
+    memberships.find((m) => m.shopId === user.shopId) ?? memberships[0]!;
+
   const rawSessionToken = generateOpaqueToken(32);
   const sessionTokenHash = sha256Bytes(rawSessionToken);
   const csrfToken = deriveCsrfToken(config.sessionSecret, rawSessionToken);
@@ -100,6 +171,7 @@ export async function loginAdmin(
     prisma.adminSession.create({
       data: {
         adminUserId: user.id,
+        activeShopId: preferredMembership.shopId,
         sessionTokenHash,
         csrfTokenHash,
         createdAt: now,
@@ -120,8 +192,10 @@ export async function loginAdmin(
     user: {
       id: user.id,
       email: user.emailNormalized,
-      shopId: user.shopId
-    }
+      shopId: preferredMembership.shopId,
+      role: preferredMembership.role
+    },
+    memberships
   };
 }
 
@@ -150,6 +224,17 @@ export async function authenticateSession(
     throw unauthenticatedError();
   }
 
+  const memberships = await loadActiveMemberships(prisma, session.adminUserId);
+  if (memberships.length === 0) {
+    throw unauthenticatedError();
+  }
+
+  const targetShopId = session.activeShopId ?? session.adminUser.shopId;
+  const activeMembership = memberships.find((m) => m.shopId === targetShopId);
+  if (!activeMembership) {
+    throw unauthenticatedError("Quyền truy cập cửa hàng của phiên này đã bị thu hồi.");
+  }
+
   await prisma.adminSession.update({
     where: { id: session.id },
     data: { lastSeenAt: now }
@@ -161,11 +246,36 @@ export async function authenticateSession(
     sessionId: session.id,
     adminUserId: session.adminUser.id,
     email: session.adminUser.emailNormalized,
-    shopId: session.adminUser.shopId,
+    shopId: activeMembership.shopId,
+    role: activeMembership.role,
+    memberships,
     csrfToken,
     csrfTokenHash: session.csrfTokenHash,
     expiresAt: session.expiresAt
   };
+}
+
+export async function switchSessionActiveShop(
+  prisma: PrismaClient,
+  sessionId: string,
+  adminUserId: string,
+  targetShopId: string
+): Promise<{
+  activeMembership: UserShopMembershipSummary;
+  memberships: UserShopMembershipSummary[];
+}> {
+  const memberships = await loadActiveMemberships(prisma, adminUserId);
+  const target = memberships.find((m) => m.shopId === targetShopId);
+  if (!target) {
+    throw forbiddenError("Bạn không có quyền thành viên đang hoạt động tại cửa hàng này.");
+  }
+
+  await prisma.adminSession.update({
+    where: { id: sessionId },
+    data: { activeShopId: target.shopId }
+  });
+
+  return { activeMembership: target, memberships };
 }
 
 export async function revokeSession(

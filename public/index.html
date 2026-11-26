@@ -352,6 +352,13 @@
 
 <script>
 (() => {
+  const activeShopSlug = new URLSearchParams(window.location.search).get("shop")?.trim() || "";
+  function withShopParam(urlPath) {
+    if (!activeShopSlug) return urlPath;
+    const sep = urlPath.includes("?") ? "&" : "?";
+    return `${urlPath}${sep}shop=${encodeURIComponent(activeShopSlug)}`;
+  }
+
   const state = {
     shop: {
       name: "Cửa hàng của Mino",
@@ -463,6 +470,7 @@
     do {
       const qs = new URLSearchParams({ limit: "100" });
       if (cursor) qs.set("cursor", cursor);
+      if (activeShopSlug) qs.set("shop", activeShopSlug);
       const res = await fetch(`/api/v1/public/products?${qs.toString()}`);
       if (!res.ok) throw new Error("Failed to load products");
       const body = await res.json();
@@ -480,9 +488,9 @@
 
     try {
       const [shopRes, products, rulesRes] = await Promise.all([
-        fetch("/api/v1/public/shop"),
+        fetch(withShopParam("/api/v1/public/shop")),
         loadAllPublicProducts(),
-        fetch("/api/v1/public/bot-rules")
+        fetch(withShopParam("/api/v1/public/bot-rules"))
       ]);
 
       if (!shopRes.ok || !rulesRes.ok) {
@@ -712,7 +720,7 @@
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-      const res = await fetch("/api/v1/public/orders", {
+      const res = await fetch(withShopParam("/api/v1/public/orders"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -826,7 +834,7 @@
     chatInitializing = true;
     typingIndicator.textContent = "Đang kết nối hộp chat…";
     try {
-      const res = await fetch("/api/v1/public/chat/sessions", {
+      const res = await fetch(withShopParam("/api/v1/public/chat/sessions"), {
         method: "POST",
         credentials: "same-origin"
       });
@@ -854,6 +862,7 @@
     try {
       const qs = new URLSearchParams({ limit: "50" });
       if (latestChatCursor) qs.set("afterCursor", latestChatCursor);
+      if (activeShopSlug) qs.set("shop", activeShopSlug);
       const res = await fetch(`/api/v1/public/chat/sessions/current/messages?${qs.toString()}`, {
         credentials: "same-origin"
       });
@@ -912,7 +921,7 @@
     typingIndicator.textContent = "Đang gửi tin nhắn…";
 
     try {
-      const res = await fetch("/api/v1/public/chat/sessions/current/messages", {
+      const res = await fetch(withShopParam("/api/v1/public/chat/sessions/current/messages"), {
         method: "POST",
         credentials: "same-origin",
         headers: {

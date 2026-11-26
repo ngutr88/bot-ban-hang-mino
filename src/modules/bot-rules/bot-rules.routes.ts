@@ -3,6 +3,7 @@ import type { BotRule, Prisma, PrismaClient } from "@prisma/client";
 import { notFoundError, validationError } from "../../shared/errors.js";
 import type { createAuthGuards } from "../auth/auth.guard.js";
 import { getPrimaryPublicShop } from "../shop/shop.routes.js";
+import { recordAuditLog } from "../audit/audit.service.js";
 
 const UUID_PATTERN =
   "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$";
@@ -57,8 +58,23 @@ export async function registerBotRuleRoutes(
 ): Promise<void> {
   const { prisma, guards } = deps;
 
-  app.get("/api/v1/public/bot-rules", async (request, reply) => {
-    const shop = await getPrimaryPublicShop(prisma);
+  app.get<{
+    Querystring: { shop?: string };
+  }>(
+    "/api/v1/public/bot-rules",
+    {
+      schema: {
+        querystring: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            shop: { type: "string", maxLength: 64 }
+          }
+        }
+      }
+    },
+    async (request, reply) => {
+      const shop = await getPrimaryPublicShop(prisma, request);
     const rules = await prisma.botRule.findMany({
       where: { shopId: shop.id, enabled: true },
       orderBy: [{ priority: "asc" }, { id: "asc" }]
@@ -97,7 +113,7 @@ export async function registerBotRuleRoutes(
   }>(
     "/api/v1/admin/bot-rules",
     {
-      preValidation: [guards.requireAdminMutation],
+      preValidation: [guards.requireOwnerMutation],
       schema: {
         body: {
           type: "object",
@@ -127,14 +143,25 @@ export async function registerBotRuleRoutes(
         ]);
       }
 
-      const created = await prisma.botRule.create({
-        data: {
+      const created = await prisma.$transaction(async (tx) => {
+        const r = await tx.botRule.create({
+          data: {
+            shopId: auth.shopId,
+            keywords,
+            answer,
+            priority: request.body.priority ?? 100,
+            enabled: request.body.enabled ?? true
+          }
+        });
+        await recordAuditLog(tx, {
           shopId: auth.shopId,
-          keywords,
-          answer,
-          priority: request.body.priority ?? 100,
-          enabled: request.body.enabled ?? true
-        }
+          actorAdminUserId: auth.adminUserId,
+          action: "bot_rule.created",
+          targetType: "bot_rule",
+          targetId: r.id,
+          summary: `Tạo kịch bản từ khóa [${r.keywords.slice(0, 3).join(", ")}]`
+        });
+        return r;
       });
 
       request.log.info(
@@ -165,7 +192,7 @@ export async function registerBotRuleRoutes(
   }>(
     "/api/v1/admin/bot-rules/:id",
     {
-      preValidation: [guards.requireAdminMutation],
+      preValidation: [guards.requireOwnerMutation],
       schema: {
         params: {
           type: "object",
@@ -222,9 +249,20 @@ export async function registerBotRuleRoutes(
         data.enabled = request.body.enabled;
       }
 
-      const updated = await prisma.botRule.update({
-        where: { id: existing.id },
-        data
+      const updated = await prisma.$transaction(async (tx) => {
+        const r = await tx.botRule.update({
+          where: { id: existing.id },
+          data
+        });
+        await recordAuditLog(tx, {
+          shopId: auth.shopId,
+          actorAdminUserId: auth.adminUserId,
+          action: "bot_rule.updated",
+          targetType: "bot_rule",
+          targetId: r.id,
+          summary: `Cập nhật kịch bản từ khóa (enabled=${r.enabled})`
+        });
+        return r;
       });
 
       request.log.info(

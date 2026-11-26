@@ -74,6 +74,32 @@ enum OutboundMessageStatus {
   @@map("outbound_message_status")
 }
 
+enum ShopMemberRole {
+  owner
+  staff
+
+  @@map("shop_member_role")
+}
+
+enum ShopMembershipStatus {
+  active
+  revoked
+
+  @@map("shop_membership_status")
+}
+
+enum AiInteractionOutcome {
+  answered_grounded
+  handoff_human_requested
+  handoff_low_confidence
+  blocked_unverified_price
+  blocked_forbidden_claim
+  fallback_disabled_or_budget
+  provider_error
+
+  @@map("ai_interaction_outcome")
+}
+
 enum ChatSessionStatus {
   open
   waiting_shop
@@ -100,23 +126,32 @@ enum ChatSenderType {
 }
 
 model Shop {
-  id            String   @id @default(uuid()) @db.Uuid
-  name          String   @db.VarChar(120)
-  publicPhone   String?  @map("public_phone") @db.VarChar(40)
-  publicAddress String?  @map("public_address") @db.VarChar(500)
-  timezone      String   @default("Asia/Ho_Chi_Minh") @db.VarChar(64)
-  currency      String   @default("VND") @db.Char(3)
-  botName       String   @map("bot_name") @db.VarChar(60)
-  fallbackReply String   @map("fallback_reply") @db.VarChar(1000)
-  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id                 String   @id @default(uuid()) @db.Uuid
+  slug               String   @unique(map: "shops_slug_key") @default(uuid()) @db.VarChar(64)
+  name               String   @db.VarChar(120)
+  publicPhone        String?  @map("public_phone") @db.VarChar(40)
+  publicAddress      String?  @map("public_address") @db.VarChar(500)
+  timezone           String   @default("Asia/Ho_Chi_Minh") @db.VarChar(64)
+  currency           String   @default("VND") @db.Char(3)
+  botName            String   @map("bot_name") @db.VarChar(60)
+  fallbackReply      String   @map("fallback_reply") @db.VarChar(1000)
+  aiEnabled          Boolean  @default(false) @map("ai_enabled")
+  aiChannels         String[] @default(["web"]) @map("ai_channels")
+  aiDailyTokenBudget Int      @default(50000) @map("ai_daily_token_budget")
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  adminUsers         AdminUser[]
-  products           Product[]
-  botRules           BotRule[]
-  orders             Order[]
-  orderItems         OrderItem[]
-  orderEvents        OrderEvent[]
+  adminUsers          AdminUser[]
+  activeSessions      AdminSession[]       @relation("ActiveShopSessions")
+  memberships         ShopMembership[]
+  invitations         ShopInvitation[]
+  auditLogs           AuditLog[]
+  aiInteractionLogs   AiInteractionLog[]
+  products            Product[]
+  botRules            BotRule[]
+  orders              Order[]
+  orderItems          OrderItem[]
+  orderEvents         OrderEvent[]
   chatSessions        ChatSession[]
   chatMessages        ChatMessage[]
   chatNotes           ChatNote[]
@@ -140,6 +175,9 @@ model AdminUser {
 
   shop              Shop               @relation(fields: [shopId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   sessions          AdminSession[]
+  memberships       ShopMembership[]   @relation("UserMemberships")
+  sentInvitations   ShopInvitation[]   @relation("InvitedByAdmin")
+  auditLogs         AuditLog[]
   orderEvents       OrderEvent[]
   chatMessages      ChatMessage[]
   chatNotes         ChatNote[]
@@ -152,6 +190,7 @@ model AdminUser {
 model AdminSession {
   id               String    @id @default(uuid()) @db.Uuid
   adminUserId      String    @map("admin_user_id") @db.Uuid
+  activeShopId     String?   @map("active_shop_id") @db.Uuid
   sessionTokenHash Bytes     @unique(map: "admin_sessions_token_hash_key") @map("session_token_hash") @db.ByteA
   csrfTokenHash    Bytes     @map("csrf_token_hash") @db.ByteA
   createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
@@ -159,7 +198,8 @@ model AdminSession {
   expiresAt        DateTime  @map("expires_at") @db.Timestamptz(6)
   revokedAt        DateTime? @map("revoked_at") @db.Timestamptz(6)
 
-  adminUser AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  adminUser  AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  activeShop Shop?     @relation("ActiveShopSessions", fields: [activeShopId], references: [id], onDelete: Restrict, onUpdate: Restrict)
 
   @@index([adminUserId], map: "admin_sessions_user_idx")
   @@map("admin_sessions")
@@ -426,4 +466,79 @@ model OutboundMessage {
   @@index([status, nextAttemptAt], map: "outbound_messages_status_next_idx")
   @@index([shopId, createdAt(sort: Desc)], map: "outbound_messages_shop_created_idx")
   @@map("outbound_messages")
+}
+
+model ShopMembership {
+  id        String               @id @default(uuid()) @db.Uuid
+  shopId    String               @map("shop_id") @db.Uuid
+  adminUserId String             @map("admin_user_id") @db.Uuid
+  role      ShopMemberRole       @default(staff)
+  status    ShopMembershipStatus @default(active)
+  revokedAt DateTime?            @map("revoked_at") @db.Timestamptz(6)
+  createdAt DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime             @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  shop      Shop      @relation(fields: [shopId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  adminUser AdminUser @relation("UserMemberships", fields: [adminUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@unique([shopId, adminUserId], map: "shop_memberships_shop_user_key")
+  @@index([adminUserId, status], map: "shop_memberships_user_status_idx")
+  @@map("shop_memberships")
+}
+
+model ShopInvitation {
+  id              String         @id @default(uuid()) @db.Uuid
+  shopId          String         @map("shop_id") @db.Uuid
+  emailNormalized String         @map("email_normalized") @db.VarChar(254)
+  role            ShopMemberRole @default(staff)
+  tokenHash       Bytes          @unique(map: "shop_invitations_token_hash_key") @map("token_hash") @db.ByteA
+  invitedByUserId String         @map("invited_by_user_id") @db.Uuid
+  expiresAt       DateTime       @map("expires_at") @db.Timestamptz(6)
+  acceptedAt      DateTime?      @map("accepted_at") @db.Timestamptz(6)
+  revokedAt       DateTime?      @map("revoked_at") @db.Timestamptz(6)
+  createdAt       DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  shop      Shop      @relation(fields: [shopId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  invitedBy AdminUser @relation("InvitedByAdmin", fields: [invitedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([shopId, createdAt(sort: Desc)], map: "shop_invitations_shop_created_idx")
+  @@map("shop_invitations")
+}
+
+model AuditLog {
+  id               String   @id @default(uuid()) @db.Uuid
+  shopId           String   @map("shop_id") @db.Uuid
+  actorAdminUserId String?  @map("actor_admin_user_id") @db.Uuid
+  action           String   @db.VarChar(80)
+  targetType       String   @map("target_type") @db.VarChar(64)
+  targetId         String?  @map("target_id") @db.VarChar(128)
+  summary          String?  @db.VarChar(500)
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  shop       Shop       @relation(fields: [shopId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  actorAdmin AdminUser? @relation(fields: [actorAdminUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([shopId, createdAt(sort: Desc), id(sort: Desc)], map: "audit_logs_shop_created_idx")
+  @@map("audit_logs")
+}
+
+model AiInteractionLog {
+  id                    String               @id @default(uuid()) @db.Uuid
+  shopId                String               @map("shop_id") @db.Uuid
+  chatSessionId         String               @map("chat_session_id") @db.Uuid
+  channel               ChatChannel
+  customerQueryPreview  String               @map("customer_query_preview") @db.VarChar(300)
+  replyPreview          String               @map("reply_preview") @db.VarChar(500)
+  outcome               AiInteractionOutcome
+  confidence            Float?
+  promptTokens          Int                  @default(0) @map("prompt_tokens")
+  completionTokens      Int                  @default(0) @map("completion_tokens")
+  estimatedCostMicroUsd BigInt               @default(0) @map("estimated_cost_micro_usd")
+  model                 String?              @db.VarChar(80)
+  createdAt             DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([shopId, createdAt(sort: Desc)], map: "ai_interaction_logs_shop_created_idx")
+  @@map("ai_interaction_logs")
 }

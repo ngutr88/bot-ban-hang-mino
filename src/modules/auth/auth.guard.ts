@@ -42,6 +42,20 @@ export function createAuthGuards(prisma: PrismaClient, config: AppConfig) {
     }
   }
 
+  async function requireOwner(request: FastifyRequest): Promise<void> {
+    await requireAdmin(request);
+    if (request.adminAuth?.role !== "owner") {
+      throw forbiddenError("Thao tác này chỉ dành cho Chủ shop (owner).");
+    }
+  }
+
+  async function requireOwnerMutation(request: FastifyRequest): Promise<void> {
+    await requireAdminMutation(request);
+    if (request.adminAuth?.role !== "owner") {
+      throw forbiddenError("Thao tác này chỉ dành cho Chủ shop (owner).");
+    }
+  }
+
   function getAdminContext(request: FastifyRequest): AdminAuthContext {
     if (!request.adminAuth) {
       throw unauthenticatedError();
@@ -52,6 +66,8 @@ export function createAuthGuards(prisma: PrismaClient, config: AppConfig) {
   return {
     requireAdmin,
     requireAdminMutation,
+    requireOwner,
+    requireOwnerMutation,
     getAdminContext
   };
 }

@@ -133,6 +133,7 @@ export async function seedDemoData(prisma: PrismaClient): Promise<{ shopId: stri
     update: {},
     create: {
       id: shopId,
+      slug: "cua-hang-mino",
       name: "Cửa hàng của Mino",
       publicPhone: "0900 000 000",
       publicAddress: "Số 1 Đường Hoa, Phường BV, TP. Hồ Chí Minh",

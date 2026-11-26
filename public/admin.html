@@ -212,6 +212,7 @@
     <span>Bảng điều khiển Chủ shop — Mino</span>
   </div>
   <nav class="top-nav" aria-label="Điều hướng quản trị">
+    <select id="shop-switcher" aria-label="Chọn cửa hàng đang quản lý" style="display:none;width:auto;padding:5px 10px;font-weight:700"></select>
     <a href="index.html">🛒 Trang bán hàng</a>
     <a href="caidat.html">⚙️ Cài đặt shop</a>
     <a href="huong-dan.html">📘 Hướng dẫn</a>
@@ -1304,6 +1305,48 @@
     await fetchConversations(true);
   });
 
+  function applyAdminSessionUi(sessionData) {
+    csrfToken = sessionData.csrfToken;
+    document.getElementById("admin-shell").style.display = "block";
+    const lbl = document.getElementById("admin-user-label");
+    const roleText = sessionData.user.role === "owner" ? "Chủ shop" : "Nhân viên";
+    lbl.textContent = `${sessionData.user.email} (${roleText})`;
+    lbl.style.display = "inline";
+    document.getElementById("btn-logout").style.display = "inline-block";
+
+    const switcher = document.getElementById("shop-switcher");
+    switcher.replaceChildren();
+    const memberships = sessionData.memberships || [];
+    if (memberships.length > 0) {
+      memberships.forEach((m) => {
+        const opt = document.createElement("option");
+        opt.value = m.shopId;
+        opt.textContent = `🏪 ${m.shopName} (${m.role === "owner" ? "Owner" : "Staff"})`;
+        if (m.shopId === sessionData.user.shopId) opt.selected = true;
+        switcher.appendChild(opt);
+      });
+      switcher.style.display = "inline-block";
+    } else {
+      switcher.style.display = "none";
+    }
+  }
+
+  document.getElementById("shop-switcher").addEventListener("change", async (e) => {
+    const targetShopId = e.target.value;
+    const r = await apiRequest("/api/v1/admin/session/switch-shop", {
+      method: "POST",
+      body: { shopId: targetShopId }
+    });
+    if (!r.ok || !r.data) return;
+    applyAdminSessionUi(r.data);
+    selectedOrderId = null;
+    selectedConvId = null;
+    document.getElementById("order-detail-container").replaceChildren();
+    document.getElementById("conv-messages").replaceChildren();
+    document.getElementById("conv-composer").style.display = "none";
+    await Promise.all([fetchOrders(true), fetchConversations(true)]);
+  });
+
   /* ==================== AUTH & GLOBAL CONTROLS ==================== */
   document.getElementById("form-login").addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -1326,14 +1369,9 @@
       return;
     }
 
-    csrfToken = r.data.csrfToken;
     document.getElementById("login-password").value = "";
     document.getElementById("login-modal").classList.remove("mo");
-    document.getElementById("admin-shell").style.display = "block";
-    const lbl = document.getElementById("admin-user-label");
-    lbl.textContent = r.data.user.email;
-    lbl.style.display = "inline";
-    document.getElementById("btn-logout").style.display = "inline-block";
+    applyAdminSessionUi(r.data);
 
     await Promise.all([fetchOrders(true), fetchConversations(true)]);
   });
@@ -1385,12 +1423,7 @@
       openLoginModal();
       return;
     }
-    csrfToken = sessionRes.data.csrfToken;
-    document.getElementById("admin-shell").style.display = "block";
-    const lbl = document.getElementById("admin-user-label");
-    lbl.textContent = sessionRes.data.user.email;
-    lbl.style.display = "inline";
-    document.getElementById("btn-logout").style.display = "inline-block";
+    applyAdminSessionUi(sessionRes.data);
     await Promise.all([fetchOrders(true), fetchConversations(true)]);
   })();
 })();

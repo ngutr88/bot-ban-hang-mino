@@ -9,6 +9,7 @@ import {
 } from "../../shared/pagination.js";
 import type { createAuthGuards } from "../auth/auth.guard.js";
 import { getPrimaryPublicShop } from "../shop/shop.routes.js";
+import { recordAuditLog } from "../audit/audit.service.js";
 
 const UUID_PATTERN =
   "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$";
@@ -46,7 +47,7 @@ export async function registerProductRoutes(
   const { prisma, guards } = deps;
 
   app.get<{
-    Querystring: { cursor?: string; limit?: string };
+    Querystring: { cursor?: string; limit?: string; shop?: string };
   }>(
     "/api/v1/public/products",
     {
@@ -56,13 +57,14 @@ export async function registerProductRoutes(
           additionalProperties: false,
           properties: {
             cursor: { type: "string", maxLength: 512 },
-            limit: { type: "string", pattern: "^[0-9]{1,4}$" }
+            limit: { type: "string", pattern: "^[0-9]{1,4}$" },
+            shop: { type: "string", maxLength: 64 }
           }
         }
       }
     },
     async (request, reply) => {
-      const shop = await getPrimaryPublicShop(prisma);
+      const shop = await getPrimaryPublicShop(prisma, request);
       const limit = clampLimit(
         request.query.limit !== undefined ? Number(request.query.limit) : undefined
       );
@@ -180,7 +182,7 @@ export async function registerProductRoutes(
   }>(
     "/api/v1/admin/products",
     {
-      preValidation: [guards.requireAdminMutation],
+      preValidation: [guards.requireOwnerMutation],
       schema: {
         body: {
           type: "object",
@@ -209,15 +211,26 @@ export async function registerProductRoutes(
       const description = request.body.description?.trim() || null;
       const emoji = request.body.emoji?.trim() || null;
 
-      const created = await prisma.product.create({
-        data: {
+      const created = await prisma.$transaction(async (tx) => {
+        const p = await tx.product.create({
+          data: {
+            shopId: auth.shopId,
+            name,
+            description,
+            priceVnd,
+            emoji,
+            status: request.body.status ?? "active"
+          }
+        });
+        await recordAuditLog(tx, {
           shopId: auth.shopId,
-          name,
-          description,
-          priceVnd,
-          emoji,
-          status: request.body.status ?? "active"
-        }
+          actorAdminUserId: auth.adminUserId,
+          action: "product.created",
+          targetType: "product",
+          targetId: p.id,
+          summary: `Tạo sản phẩm "${p.name}" (${formatVndBigInt(p.priceVnd)}đ)`
+        });
+        return p;
       });
 
       request.log.info(
@@ -249,7 +262,7 @@ export async function registerProductRoutes(
   }>(
     "/api/v1/admin/products/:id",
     {
-      preValidation: [guards.requireAdminMutation],
+      preValidation: [guards.requireOwnerMutation],
       schema: {
         params: {
           type: "object",
@@ -311,9 +324,20 @@ export async function registerProductRoutes(
         data.status = request.body.status;
       }
 
-      const updated = await prisma.product.update({
-        where: { id: existing.id },
-        data
+      const updated = await prisma.$transaction(async (tx) => {
+        const p = await tx.product.update({
+          where: { id: existing.id },
+          data
+        });
+        await recordAuditLog(tx, {
+          shopId: auth.shopId,
+          actorAdminUserId: auth.adminUserId,
+          action: "product.updated",
+          targetType: "product",
+          targetId: p.id,
+          summary: `Cập nhật sản phẩm "${p.name}" (${p.status})`
+        });
+        return p;
       });
 
       request.log.info(

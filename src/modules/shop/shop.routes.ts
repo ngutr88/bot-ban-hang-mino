@@ -1,4 +1,4 @@
-import type { FastifyInstance } from "fastify";
+import type { FastifyInstance, FastifyRequest } from "fastify";
 import type { PrismaClient, Shop } from "@prisma/client";
 import {
   notFoundError,
@@ -6,8 +6,38 @@ import {
   validationError
 } from "../../shared/errors.js";
 import type { createAuthGuards } from "../auth/auth.guard.js";
+import { recordAuditLog } from "../audit/audit.service.js";
 
-export async function getPrimaryPublicShop(prisma: PrismaClient): Promise<Shop> {
+const SLUG_REGEX = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+export async function getPrimaryPublicShop(
+  prisma: PrismaClient,
+  request?: FastifyRequest
+): Promise<Shop> {
+  if (request) {
+    const headerSlug = request.headers["x-shop-slug"];
+    const queryObj = request.query as Record<string, unknown> | undefined;
+    const rawSlug =
+      typeof headerSlug === "string" && headerSlug.trim() !== ""
+        ? headerSlug.trim().toLowerCase()
+        : typeof queryObj?.shop === "string" && queryObj.shop.trim() !== ""
+        ? queryObj.shop.trim().toLowerCase()
+        : null;
+
+    if (rawSlug !== null) {
+      if (!SLUG_REGEX.test(rawSlug) || rawSlug.length > 64) {
+        throw validationError("Mã đường dẫn cửa hàng (shop slug) không hợp lệ.", [
+          { field: "shop", reason: "invalid shop slug" }
+        ]);
+      }
+      const found = await prisma.shop.findUnique({ where: { slug: rawSlug } });
+      if (!found) {
+        throw notFoundError("Không tìm thấy cửa hàng theo đường dẫn này.");
+      }
+      return found;
+    }
+  }
+
   const shop = await prisma.shop.findFirst({
     orderBy: { createdAt: "asc" }
   });
@@ -31,6 +61,7 @@ function serializePublicShop(shop: Shop) {
 function serializeAdminShop(shop: Shop) {
   return {
     id: shop.id,
+    slug: shop.slug,
     name: shop.name,
     publicPhone: shop.publicPhone,
     publicAddress: shop.publicAddress,
@@ -51,13 +82,29 @@ export async function registerShopRoutes(
 ): Promise<void> {
   const { prisma, guards } = deps;
 
-  app.get("/api/v1/public/shop", async (request, reply) => {
-    const shop = await getPrimaryPublicShop(prisma);
-    return reply.status(200).send({
-      data: serializePublicShop(shop),
-      requestId: request.id
-    });
-  });
+  app.get<{
+    Querystring: { shop?: string };
+  }>(
+    "/api/v1/public/shop",
+    {
+      schema: {
+        querystring: {
+          type: "object",
+          additionalProperties: false,
+          properties: {
+            shop: { type: "string", maxLength: 64 }
+          }
+        }
+      }
+    },
+    async (request, reply) => {
+      const shop = await getPrimaryPublicShop(prisma, request);
+      return reply.status(200).send({
+        data: serializePublicShop(shop),
+        requestId: request.id
+      });
+    }
+  );
 
   app.get(
     "/api/v1/admin/shop",
@@ -86,7 +133,7 @@ export async function registerShopRoutes(
   }>(
     "/api/v1/admin/shop",
     {
-      preValidation: [guards.requireAdminMutation],
+      preValidation: [guards.requireOwnerMutation],
       schema: {
         body: {
           type: "object",
@@ -152,9 +199,20 @@ export async function registerShopRoutes(
         data.publicAddress = val.length > 0 ? val : null;
       }
 
-      const updated = await prisma.shop.update({
-        where: { id: auth.shopId },
-        data
+      const updated = await prisma.$transaction(async (tx) => {
+        const s = await tx.shop.update({
+          where: { id: auth.shopId },
+          data
+        });
+        await recordAuditLog(tx, {
+          shopId: auth.shopId,
+          actorAdminUserId: auth.adminUserId,
+          action: "shop.updated",
+          targetType: "shop",
+          targetId: auth.shopId,
+          summary: `Cập nhật thông tin cửa hàng "${s.name}"`
+        });
+        return s;
       });
 
       request.log.info(

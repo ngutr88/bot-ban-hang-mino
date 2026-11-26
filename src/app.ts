@@ -23,6 +23,9 @@ import { createMessengerAdapter } from "./modules/integrations/messenger-adapter
 import { registerMessengerWebhookRoutes } from "./modules/integrations/messenger-webhook.routes.js";
 import { registerAdminIntegrationRoutes } from "./modules/integrations/integrations-admin.routes.js";
 import { processDueOutboundMessages } from "./modules/integrations/outbox.service.js";
+import { registerMultiShopRoutes } from "./modules/multishop/multishop.routes.js";
+import { createGroundedAiProvider } from "./modules/ai/ai-provider.js";
+import { registerAiAdminRoutes } from "./modules/ai/ai-admin.routes.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.resolve(__dirname, "..", "public");
@@ -32,6 +35,7 @@ export interface BuildAppOptions {
   config: AppConfig;
   loggerStream?: Writable;
   fetchFn?: typeof fetch;
+  aiFetchFn?: typeof fetch;
   enableOutboxWorker?: boolean;
 }
 
@@ -68,7 +72,14 @@ function mapValidationFields(err: FastifyError): ErrorFieldDetail[] {
 }
 
 export async function buildApp(options: BuildAppOptions): Promise<FastifyInstance> {
-  const { prisma, config, loggerStream, fetchFn, enableOutboxWorker = false } = options;
+  const {
+    prisma,
+    config,
+    loggerStream,
+    fetchFn,
+    aiFetchFn,
+    enableOutboxWorker = false
+  } = options;
 
   const app = Fastify({
     trustProxy: config.trustProxy,
@@ -196,16 +207,24 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
 
   const guards = createAuthGuards(prisma, config);
   const messengerAdapter = createMessengerAdapter(config, fetchFn);
+  const aiProvider = createGroundedAiProvider(config, aiFetchFn ?? fetchFn);
 
   await registerHealthRoutes(app, { prisma });
   await registerAuthRoutes(app, { prisma, config, guards });
+  await registerMultiShopRoutes(app, { prisma, config, guards });
+  await registerAiAdminRoutes(app, { prisma, config, guards });
   await registerShopRoutes(app, { prisma, guards });
   await registerProductRoutes(app, { prisma, guards });
   await registerBotRuleRoutes(app, { prisma, guards });
   await registerOrderRoutes(app, { prisma, config, guards });
-  await registerPublicChatRoutes(app, { prisma, config });
+  await registerPublicChatRoutes(app, { prisma, config, aiProvider });
   await registerAdminChatRoutes(app, { prisma, guards, messengerAdapter });
-  await registerMessengerWebhookRoutes(app, { prisma, config, messengerAdapter });
+  await registerMessengerWebhookRoutes(app, {
+    prisma,
+    config,
+    messengerAdapter,
+    aiProvider
+  });
   await registerAdminIntegrationRoutes(app, {
     prisma,
     config,
