@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quản lý đơn hàng COD — Quản trị Mino</title>
+<meta name="description" content="Trang quản trị đơn hàng COD của chủ shop Mino.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📦</text></svg>">
+<style>
+  :root{
+    --bg:#eef2f9; --card:#ffffff; --vien:#e4eaf3;
+    --chu:#1e2a3b; --chu-mo:#6b7a90; --chu-nhat:#94a3b8;
+    --xanh:#2e6cf6; --xanh-nen:#e8f0fe; --xanh-dam:#1d4ed8;
+    --tim:#8b5cf6;
+    --luc:#15803d; --luc-nen:#e5f6ec;
+    --cam:#b45309; --cam-nen:#fdf1dd;
+    --do:#dc2626; --do-nen:#fef2f2;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    font-family:"Inter","Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;
+    background:var(--bg);color:var(--chu);font-size:14px;line-height:1.5;
+  }
+  a{color:var(--xanh-dam);text-decoration:none}
+
+  .topbar{
+    height:56px;background:var(--card);border-bottom:1px solid var(--vien);
+    display:flex;align-items:center;justify-content:space-between;padding:0 20px;gap:12px;
+  }
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800;font-size:15px}
+  .brand .ico{
+    width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--xanh),var(--tim));
+    color:#fff;display:grid;place-items:center;
+  }
+  .top-nav{display:flex;align-items:center;gap:14px;font-weight:600;font-size:13px}
+  .top-nav a{color:var(--chu-mo)}
+  .top-nav a:hover{color:var(--xanh)}
+
+  .btn{
+    border:none;border-radius:9px;padding:8px 14px;font:inherit;font-weight:700;cursor:pointer;
+    font-size:13px;
+  }
+  .btn:disabled{opacity:.6;cursor:not-allowed}
+  .btn-chinh{background:linear-gradient(135deg,var(--xanh),var(--tim));color:#fff}
+  .btn-vien{background:#fff;border:1px solid var(--vien);color:var(--chu)}
+
+  .m2-banner{
+    margin:14px 20px 0;padding:10px 16px;background:#fffbeb;border:1px solid #fde68a;
+    border-radius:12px;color:#92400e;font-size:13px;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;
+  }
+
+  .layout{
+    display:grid;grid-template-columns:380px minmax(0,1fr);gap:16px;
+    padding:14px 20px 24px;max-width:1400px;margin:0 auto;
+  }
+  @media (max-width:960px){.layout{grid-template-columns:1fr}}
+
+  .panel{
+    background:var(--card);border:1px solid var(--vien);border-radius:14px;
+    display:flex;flex-direction:column;overflow:hidden;
+  }
+  .panel-head{padding:14px 16px;border-bottom:1px solid var(--vien)}
+  .panel-head h2{font-size:15px;font-weight:800}
+
+  .filters{padding:12px 14px;border-bottom:1px solid var(--vien);display:flex;flex-direction:column;gap:8px}
+  .search-row{display:flex;gap:8px}
+  input[type=text],input[type=email],input[type=password],input[type=number],select,textarea{
+    width:100%;padding:8px 11px;border:1px solid var(--vien);border-radius:9px;font:inherit;background:#fbfcff;
+  }
+  input:focus,select:focus,textarea:focus{outline:2px solid var(--xanh);border-color:transparent}
+
+  .status-tabs{display:flex;gap:6px;flex-wrap:wrap}
+  .status-tabs button{
+    border:1px solid var(--vien);background:#fff;border-radius:99px;padding:4px 10px;
+    font-size:12px;font-weight:600;color:var(--chu-mo);cursor:pointer;
+  }
+  .status-tabs button.active{background:var(--xanh-nen);border-color:var(--xanh);color:var(--xanh-dam)}
+
+  .order-list{max-height:70vh;overflow-y:auto;padding:8px}
+  .order-row{
+    padding:11px 12px;border-radius:11px;border:1px solid transparent;cursor:pointer;margin-bottom:6px;
+  }
+  .order-row:hover{background:#f8faff;border-color:var(--vien)}
+  .order-row.active{background:var(--xanh-nen);border-color:#bfdbfe}
+  .order-row-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .order-no{font-weight:800;font-size:13.5px}
+  .order-meta{font-size:12.5px;color:var(--chu-mo);margin-top:3px;display:flex;justify-content:space-between;gap:8px}
+
+  .badge{
+    display:inline-block;padding:2px 9px;border-radius:99px;font-size:11.5px;font-weight:700;
+  }
+  .st-new{background:var(--cam-nen);color:var(--cam)}
+  .st-confirmed,.st-preparing,.st-shipping{background:var(--xanh-nen);color:var(--xanh-dam)}
+  .st-completed{background:var(--luc-nen);color:var(--luc)}
+  .st-cancelled{background:var(--do-nen);color:var(--do)}
+
+  .detail-body{padding:18px 20px}
+  .empty-state{padding:48px 20px;text-align:center;color:var(--chu-mo)}
+  .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:14px 0}
+  @media (max-width:640px){.info-grid{grid-template-columns:1fr}}
+  .info-box{background:#f8faff;border:1px solid var(--vien);border-radius:12px;padding:12px 14px}
+  .info-box h3{font-size:13px;color:var(--chu-mo);margin-bottom:6px}
+
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13.5px}
+  th,td{padding:9px 10px;border-bottom:1px solid var(--vien);text-align:left}
+  th{color:var(--chu-mo);font-weight:700;background:#f8faff}
+  td.num,th.num{text-align:right}
+
+  .totals-box{
+    background:#f8faff;border:1px solid var(--vien);border-radius:12px;padding:12px 16px;
+    max-width:380px;margin-left:auto;
+  }
+  .totals-row{display:flex;justify-content:space-between;padding:4px 0}
+  .totals-row.grand{border-top:1px solid var(--vien);margin-top:6px;padding-top:8px;font-weight:800;font-size:15px}
+
+  .transition-card{
+    margin-top:18px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:12px;padding:14px 16px;
+  }
+  .transition-card h3{font-size:14px;margin-bottom:8px;color:var(--xanh-dam)}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px}
+  @media (max-width:640px){.form-row{grid-template-columns:1fr}}
+  label{display:block;font-weight:700;font-size:12.5px;margin-bottom:4px}
+
+  .msg-box{display:none;padding:9px 12px;border-radius:9px;font-weight:600;margin:10px 0;font-size:13px}
+  .msg-box.ok{display:block;background:var(--luc-nen);color:var(--luc)}
+  .msg-box.loi{display:block;background:var(--do-nen);color:var(--do)}
+
+  .timeline{margin-top:18px}
+  .timeline h3{font-size:14px;margin-bottom:8px}
+  .ev-item{
+    padding:9px 12px;border-left:3px solid var(--xanh);background:#f8faff;
+    border-radius:0 9px 9px 0;margin-bottom:8px;font-size:12.8px;
+  }
+  .ev-time{color:var(--chu-mo);font-size:11.5px}
+
+  .phu-login{
+    position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:100;
+    display:none;place-items:center;padding:16px;
+  }
+  .phu-login.mo{display:grid}
+  .hop-login{
+    background:#fff;border-radius:18px;padding:24px;width:100%;max-width:400px;
+    box-shadow:0 20px 50px rgba(15,23,42,.25);
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">
+    <span class="ico">📦</span>
+    <span>Quản lý đơn hàng COD — Mino</span>
+  </div>
+  <nav class="top-nav" aria-label="Điều hướng quản trị">
+    <a href="index.html">🛒 Trang bán hàng</a>
+    <a href="caidat.html">⚙️ Cài đặt shop</a>
+    <a href="huong-dan.html">📘 Hướng dẫn</a>
+    <span id="admin-user-label" style="color:var(--xanh-dam);display:none"></span>
+    <button type="button" class="btn btn-vien" id="btn-logout" style="display:none">Đăng xuất</button>
+  </nav>
+</header>
+
+<div id="admin-shell" style="display:none">
+  <div class="m2-banner">
+    <span>ℹ️ <b>Phạm vi M1:</b> Quản lý đơn hàng COD tập trung từ máy chủ. Hộp thư chat trực tuyến &amp; kết nối Messenger/Zalo thuộc giai đoạn M2/M3 (chưa kích hoạt).</span>
+    <button type="button" class="btn btn-vien" id="btn-refresh" style="padding:4px 10px;font-size:12px">↻ Làm mới danh sách</button>
+  </div>
+
+  <main class="layout">
+    <!-- DANH SÁCH ĐƠN -->
+    <section class="panel" aria-label="Danh sách đơn hàng">
+      <div class="panel-head">
+        <h2>Danh sách đơn hàng</h2>
+      </div>
+      <div class="filters">
+        <form id="form-search" class="search-row">
+          <input type="text" id="inp-q" placeholder="Tìm mã đơn, tên hoặc SĐT người nhận…">
+          <button type="submit" class="btn btn-vien">Tìm</button>
+        </form>
+        <div class="status-tabs" id="status-tabs"></div>
+      </div>
+      <div class="order-list" id="order-list"></div>
+      <div style="padding:10px;border-top:1px solid var(--vien);display:none" id="load-more-wrap">
+        <button type="button" class="btn btn-vien" id="btn-load-more" style="width:100%">Tải thêm đơn cũ hơn</button>
+      </div>
+    </section>
+
+    <!-- CHI TIẾT ĐƠN -->
+    <section class="panel" aria-label="Chi tiết đơn hàng">
+      <div class="panel-head">
+        <h2 id="detail-heading">Chi tiết đơn hàng</h2>
+      </div>
+      <div id="detail-container" class="detail-body">
+        <div class="empty-state">Chọn một đơn hàng ở cột bên trái để xem chi tiết và xử lý trạng thái.</div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- LOGIN MODAL -->
+<div class="phu-login" id="login-modal" role="dialog" aria-modal="true" aria-labelledby="login-title">
+  <div class="hop-login">
+    <h2 id="login-title" style="font-size:1.2rem;margin-bottom:4px">🔐 Đăng nhập quản trị đơn hàng</h2>
+    <p id="login-desc" style="color:var(--chu-mo);font-size:13px;margin-bottom:14px">
+      Chỉ chủ shop đã đăng nhập mới có quyền xem và xử lý đơn hàng.
+    </p>
+    <form id="form-login">
+      <label for="login-email">Email</label>
+      <input type="email" id="login-email" required autocomplete="username">
+      <label for="login-password" style="margin-top:10px">Mật khẩu</label>
+      <input type="password" id="login-password" required autocomplete="current-password">
+      <div id="msg-login" class="msg-box" role="alert"></div>
+      <button type="submit" class="btn btn-chinh" id="btn-login" style="width:100%;margin-top:14px">Đăng nhập</button>
+    </form>
+  </div>
+</div>
+
+<script>
+(() => {
+  const STATUS_LABELS = {
+    new: "Mới",
+    confirmed: "Đã xác nhận",
+    preparing: "Đang chuẩn bị",
+    shipping: "Đang giao",
+    completed: "Hoàn tất",
+    cancelled: "Đã hủy"
+  };
+
+  const ALLOWED_TRANSITIONS = {
+    new: ["confirmed", "cancelled"],
+    confirmed: ["preparing", "cancelled"],
+    preparing: ["shipping", "cancelled"],
+    shipping: ["completed"],
+    completed: [],
+    cancelled: []
+  };
+
+  let csrfToken = null;
+  let currentFilterStatus = "";
+  let currentQuery = "";
+  let orders = [];
+  let nextCursor = null;
+  let selectedOrderId = null;
+
+  function formatVnd(vndStr) {
+    if (vndStr === null || vndStr === undefined) return null;
+    try {
+      return BigInt(vndStr).toLocaleString("vi-VN") + "đ";
+    } catch {
+      return vndStr + "đ";
+    }
+  }
+
+  function formatVnDateTime(isoStr) {
+    try {
+      return new Intl.DateTimeFormat("vi-VN", {
+        timeZone: "Asia/Ho_Chi_Minh",
+        dateStyle: "short",
+        timeStyle: "short"
+      }).format(new Date(isoStr));
+    } catch {
+      return isoStr;
+    }
+  }
+
+  function showMsg(el, type, text) {
+    el.className = `msg-box ${type}`;
+    el.textContent = text;
+  }
+
+  function openLoginModal(msg) {
+    if (msg) document.getElementById("login-desc").textContent = msg;
+    document.getElementById("msg-login").className = "msg-box";
+    document.getElementById("login-modal").classList.add("mo");
+    document.getElementById("login-email").focus();
+  }
+
+  async function apiRequest(path, options = {}) {
+    const method = options.method || "GET";
+    const headers = { ...(options.headers || {}) };
+    if (options.body !== undefined) {
+      headers["Content-Type"] = "application/json";
+    }
+    if (method !== "GET" && method !== "HEAD" && csrfToken) {
+      headers["X-CSRF-Token"] = csrfToken;
+    }
+
+    const res = await fetch(path, {
+      ...options,
+      method,
+      headers,
+      credentials: "same-origin",
+      body: options.body !== undefined ? JSON.stringify(options.body) : undefined
+    });
+
+    if (res.status === 204) return { ok: true, status: 204, data: null };
+    const payload = await res.json().catch(() => null);
+
+    if (res.status === 401 && path !== "/api/v1/admin/session") {
+      csrfToken = null;
+      openLoginModal(
+        "Phiên làm việc đã hết hạn. Vui lòng đăng nhập lại — ghi chú hoặc phí ship bạn đang nhập vẫn được giữ nguyên."
+      );
+    }
+
+    return {
+      ok: res.ok,
+      status: res.status,
+      data: payload?.data ?? null,
+      nextCursor: payload?.nextCursor ?? null,
+      errorMessage: payload?.error?.message || "Yêu cầu không thành công."
+    };
+  }
+
+  function renderStatusTabs() {
+    const box = document.getElementById("status-tabs");
+    box.replaceChildren();
+    const items = [
+      ["", "Tất cả"],
+      ["new", "Mới"],
+      ["confirmed", "Đã xác nhận"],
+      ["preparing", "Đang chuẩn bị"],
+      ["shipping", "Đang giao"],
+      ["completed", "Hoàn tất"],
+      ["cancelled", "Đã hủy"]
+    ];
+    items.forEach(([code, label]) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = currentFilterStatus === code ? "active" : "";
+      btn.textContent = label;
+      btn.addEventListener("click", () => {
+        currentFilterStatus = code;
+        renderStatusTabs();
+        void fetchOrders(true);
+      });
+      box.appendChild(btn);
+    });
+  }
+
+  function renderOrderList() {
+    const listEl = document.getElementById("order-list");
+    listEl.replaceChildren();
+
+    if (orders.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "empty-state";
+      empty.textContent = "Không có đơn hàng nào khớp bộ lọc.";
+      listEl.appendChild(empty);
+    } else {
+      orders.forEach((o) => {
+        const row = document.createElement("div");
+        row.className = `order-row ${selectedOrderId === o.id ? "active" : ""}`;
+
+        const top = document.createElement("div");
+        top.className = "order-row-top";
+
+        const noEl = document.createElement("span");
+        noEl.className = "order-no";
+        noEl.textContent = o.orderNo;
+
+        const badge = document.createElement("span");
+        badge.className = `badge st-${o.status}`;
+        badge.textContent = STATUS_LABELS[o.status] || o.status;
+        top.append(noEl, badge);
+
+        const meta1 = document.createElement("div");
+        meta1.className = "order-meta";
+        const who = document.createElement("span");
+        who.textContent = `${o.recipientName} · ${o.recipientPhone}`;
+        const money = document.createElement("b");
+        money.textContent = o.totalVnd !== null ? formatVnd(o.totalVnd) : `Tạm tính ${formatVnd(o.subtotalVnd)}`;
+        meta1.append(who, money);
+
+        const meta2 = document.createElement("div");
+        meta2.className = "order-meta";
+        const timeEl = document.createElement("span");
+        timeEl.textContent = formatVnDateTime(o.createdAt);
+        const shipState = document.createElement("span");
+        shipState.textContent = o.shippingFeeVnd === null ? "Chưa chốt phí ship" : `Ship: ${formatVnd(o.shippingFeeVnd)}`;
+        meta2.append(timeEl, shipState);
+
+        row.append(top, meta1, meta2);
+        row.addEventListener("click", () => {
+          selectedOrderId = o.id;
+          renderOrderList();
+          void loadOrderDetail(o.id);
+        });
+        listEl.appendChild(row);
+      });
+    }
+
+    document.getElementById("load-more-wrap").style.display = nextCursor ? "block" : "none";
+  }
+
+  async function fetchOrders(reset = true) {
+    if (reset) {
+      orders = [];
+      nextCursor = null;
+    }
+    const qs = new URLSearchParams({ limit: "25" });
+    if (currentFilterStatus) qs.set("status", currentFilterStatus);
+    if (currentQuery) qs.set("q", currentQuery);
+    if (!reset && nextCursor) qs.set("cursor", nextCursor);
+
+    const r = await apiRequest(`/api/v1/admin/orders?${qs.toString()}`);
+    if (!r.ok) return;
+
+    orders = reset ? (r.data || []) : [...orders, ...(r.data || [])];
+    nextCursor = r.nextCursor;
+    renderOrderList();
+
+    if (reset && orders.length > 0 && !selectedOrderId) {
+      selectedOrderId = orders[0].id;
+      renderOrderList();
+      await loadOrderDetail(selectedOrderId);
+    }
+  }
+
+  function renderOrderDetail(order) {
+    const container = document.getElementById("detail-container");
+    container.replaceChildren();
+
+    document.getElementById("detail-heading").textContent = `Đơn hàng ${order.orderNo}`;
+
+    // Header summary
+    const topBar = document.createElement("div");
+    topBar.style.display = "flex";
+    topBar.style.justifyContent = "space-between";
+    topBar.style.alignItems = "center";
+    topBar.style.flexWrap = "wrap";
+    topBar.style.gap = "8px";
+
+    const statusBadge = document.createElement("span");
+    statusBadge.className = `badge st-${order.status}`;
+    statusBadge.style.fontSize = "13px";
+    statusBadge.textContent = `Trạng thái: ${STATUS_LABELS[order.status] || order.status}`;
+
+    const createdInfo = document.createElement("span");
+    createdInfo.style.color = "var(--chu-mo)";
+    createdInfo.textContent = `Tạo lúc: ${formatVnDateTime(order.createdAt)}`;
+    topBar.append(statusBadge, createdInfo);
+
+    // Recipient & Note boxes
+    const infoGrid = document.createElement("div");
+    infoGrid.className = "info-grid";
+
+    const recBox = document.createElement("div");
+    recBox.className = "info-box";
+    const recTitle = document.createElement("h3");
+    recTitle.textContent = "Người nhận & Giao hàng";
+    const recName = document.createElement("div");
+    recName.style.fontWeight = "700";
+    recName.textContent = order.recipient.name;
+    const recPhone = document.createElement("div");
+    recPhone.textContent = `📞 ${order.recipient.phone}`;
+    const recAddr = document.createElement("div");
+    recAddr.textContent = `📍 ${order.recipient.address}`;
+    recBox.append(recTitle, recName, recPhone, recAddr);
+
+    const noteBox = document.createElement("div");
+    noteBox.className = "info-box";
+    const noteTitle = document.createElement("h3");
+    noteTitle.textContent = "Ghi chú của khách";
+    const noteText = document.createElement("div");
+    noteText.textContent = order.note || "(Không có ghi chú)";
+    noteBox.append(noteTitle, noteText);
+
+    infoGrid.append(recBox, noteBox);
+
+    // Items table
+    const table = document.createElement("table");
+    const thead = document.createElement("thead");
+    const hr = document.createElement("tr");
+    [
+      ["Sản phẩm (snapshot lúc đặt)", ""],
+      ["Đơn giá", "num"],
+      ["SL", "num"],
+      ["Thành tiền", "num"]
+    ].forEach(([txt, cls]) => {
+      const th = document.createElement("th");
+      if (cls) th.className = cls;
+      th.textContent = txt;
+      hr.appendChild(th);
+    });
+    thead.appendChild(hr);
+
+    const tbody = document.createElement("tbody");
+    order.items.forEach((it) => {
+      const tr = document.createElement("tr");
+      const tdName = document.createElement("td");
+      tdName.textContent = it.productNameSnapshot;
+      const tdPrice = document.createElement("td");
+      tdPrice.className = "num";
+      tdPrice.textContent = formatVnd(it.unitPriceVnd);
+      const tdQty = document.createElement("td");
+      tdQty.className = "num";
+      tdQty.textContent = String(it.quantity);
+      const tdLine = document.createElement("td");
+      tdLine.className = "num";
+      tdLine.textContent = formatVnd(it.lineTotalVnd);
+      tr.append(tdName, tdPrice, tdQty, tdLine);
+      tbody.appendChild(tr);
+    });
+    table.append(thead, tbody);
+
+    // Totals summary
+    const totalsBox = document.createElement("div");
+    totalsBox.className = "totals-box";
+
+    const addTotalRow = (label, value, extraClass = "") => {
+      const r = document.createElement("div");
+      r.className = `totals-row ${extraClass}`.trim();
+      const s1 = document.createElement("span");
+      s1.textContent = label;
+      const s2 = document.createElement("span");
+      s2.textContent = value;
+      r.append(s1, s2);
+      totalsBox.appendChild(r);
+    };
+
+    addTotalRow("Tạm tính tiền hàng:", formatVnd(order.subtotalVnd));
+    addTotalRow(
+      "Phí vận chuyển:",
+      order.shippingFeeVnd === null ? "Chưa chốt phí ship" : formatVnd(order.shippingFeeVnd)
+    );
+    addTotalRow(
+      "Tổng thu COD:",
+      order.totalVnd === null ? "Chờ xác nhận phí ship" : formatVnd(order.totalVnd),
+      "grand"
+    );
+
+    container.append(topBar, infoGrid, table, totalsBox);
+
+    // Allowed status transitions form
+    const nextChoices = ALLOWED_TRANSITIONS[order.status] || [];
+    if (nextChoices.length > 0) {
+      const tCard = document.createElement("div");
+      tCard.className = "transition-card";
+
+      const tTitle = document.createElement("h3");
+      tTitle.textContent = "Cập nhật trạng thái xử lý";
+
+      const form = document.createElement("form");
+      const row = document.createElement("div");
+      row.className = "form-row";
+
+      const statusWrap = document.createElement("div");
+      const statusLbl = document.createElement("label");
+      statusLbl.textContent = "Chuyển sang trạng thái *";
+      const statusSel = document.createElement("select");
+      nextChoices.forEach((st) => {
+        const opt = document.createElement("option");
+        opt.value = st;
+        opt.textContent = STATUS_LABELS[st] || st;
+        statusSel.appendChild(opt);
+      });
+      statusWrap.append(statusLbl, statusSel);
+
+      const shipWrap = document.createElement("div");
+      const shipLbl = document.createElement("label");
+      shipLbl.textContent = "Phí vận chuyển VND (bắt buộc khi xác nhận) *";
+      const shipInp = document.createElement("input");
+      shipInp.type = "number";
+      shipInp.min = "0";
+      shipInp.step = "1";
+      shipInp.placeholder = "VD: 30000 (nhập 0 nếu miễn phí ship)";
+      shipWrap.append(shipLbl, shipInp);
+
+      const updateShipVisibility = () => {
+        const needShip = order.status === "new" && statusSel.value === "confirmed";
+        shipWrap.style.display = needShip ? "block" : "none";
+        shipInp.required = needShip;
+      };
+      statusSel.addEventListener("change", updateShipVisibility);
+      updateShipVisibility();
+
+      row.append(statusWrap, shipWrap);
+
+      const noteLbl = document.createElement("label");
+      noteLbl.textContent = "Ghi chú nội bộ cho lần chuyển trạng thái (tùy chọn)";
+      const noteInp = document.createElement("textarea");
+      noteInp.rows = 2;
+      noteInp.maxLength = 1000;
+      noteInp.placeholder = "VD: Đã gọi khách xác nhận giao sáng mai…";
+
+      const msgEl = document.createElement("div");
+      msgEl.className = "msg-box";
+
+      const submitBtn = document.createElement("button");
+      submitBtn.type = "submit";
+      submitBtn.className = "btn btn-chinh";
+      submitBtn.style.marginTop = "10px";
+      submitBtn.textContent = "Lưu trạng thái mới";
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        msgEl.className = "msg-box";
+        const targetStatus = statusSel.value;
+        const body = {
+          status: targetStatus,
+          ...(noteInp.value.trim() ? { note: noteInp.value.trim() } : {})
+        };
+
+        if (order.status === "new" && targetStatus === "confirmed") {
+          const rawShip = String(shipInp.value).trim();
+          if (!/^(0|[1-9][0-9]{0,14})$/.test(rawShip)) {
+            showMsg(msgEl, "loi", "Vui lòng nhập phí vận chuyển là số nguyên VND không âm (ví dụ 30000 hoặc 0).");
+            return;
+          }
+          body.shippingFeeVnd = rawShip;
+        }
+
+        submitBtn.disabled = true;
+        const res = await apiRequest(`/api/v1/admin/orders/${order.id}`, {
+          method: "PATCH",
+          body
+        });
+        submitBtn.disabled = false;
+
+        if (!res.ok || !res.data) {
+          showMsg(msgEl, "loi", res.errorMessage);
+          return;
+        }
+
+        await fetchOrders(true);
+        renderOrderDetail(res.data);
+      });
+
+      form.append(row, noteLbl, noteInp, msgEl, submitBtn);
+      tCard.append(tTitle, form);
+      container.appendChild(tCard);
+    }
+
+    // Events timeline
+    const timeline = document.createElement("div");
+    timeline.className = "timeline";
+    const tlTitle = document.createElement("h3");
+    tlTitle.textContent = "Lịch sử xử lý đơn hàng";
+    timeline.appendChild(tlTitle);
+
+    (order.events || []).forEach((ev) => {
+      const item = document.createElement("div");
+      item.className = "ev-item";
+
+      const head = document.createElement("div");
+      head.style.fontWeight = "700";
+      if (ev.eventType === "order_created") {
+        head.textContent = "Khách tạo đơn COD mới";
+      } else {
+        const fromLbl = ev.oldStatus ? STATUS_LABELS[ev.oldStatus] || ev.oldStatus : "—";
+        const toLbl = ev.newStatus ? STATUS_LABELS[ev.newStatus] || ev.newStatus : "—";
+        head.textContent = `Chuyển trạng thái: ${fromLbl} → ${toLbl}`;
+      }
+
+      const meta = document.createElement("div");
+      meta.className = "ev-time";
+      const actorText = ev.actorAdmin ? `bởi ${ev.actorAdmin.email}` : "từ trang đặt hàng";
+      meta.textContent = `${formatVnDateTime(ev.createdAt)} · ${actorText}`;
+
+      item.append(head, meta);
+      if (ev.note) {
+        const noteDiv = document.createElement("div");
+        noteDiv.style.marginTop = "4px";
+        noteDiv.textContent = `📝 ${ev.note}`;
+        item.appendChild(noteDiv);
+      }
+      timeline.appendChild(item);
+    });
+
+    container.appendChild(timeline);
+  }
+
+  async function loadOrderDetail(orderId) {
+    const r = await apiRequest(`/api/v1/admin/orders/${orderId}`);
+    if (!r.ok || !r.data) return;
+    renderOrderDetail(r.data);
+  }
+
+  /* ===== AUTH & CONTROLS ===== */
+  document.getElementById("form-login").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const msgEl = document.getElementById("msg-login");
+    msgEl.className = "msg-box";
+    const btn = document.getElementById("btn-login");
+    btn.disabled = true;
+
+    const r = await apiRequest("/api/v1/admin/session", {
+      method: "POST",
+      body: {
+        email: document.getElementById("login-email").value.trim(),
+        password: document.getElementById("login-password").value
+      }
+    });
+    btn.disabled = false;
+
+    if (!r.ok || !r.data) {
+      showMsg(msgEl, "loi", r.errorMessage);
+      return;
+    }
+
+    csrfToken = r.data.csrfToken;
+    document.getElementById("login-password").value = "";
+    document.getElementById("login-modal").classList.remove("mo");
+    document.getElementById("admin-shell").style.display = "block";
+    const lbl = document.getElementById("admin-user-label");
+    lbl.textContent = r.data.user.email;
+    lbl.style.display = "inline";
+    document.getElementById("btn-logout").style.display = "inline-block";
+
+    if (orders.length === 0) {
+      await fetchOrders(true);
+    }
+  });
+
+  document.getElementById("btn-logout").addEventListener("click", async () => {
+    await apiRequest("/api/v1/admin/session", { method: "DELETE" });
+    csrfToken = null;
+    orders = [];
+    selectedOrderId = null;
+    document.getElementById("admin-shell").style.display = "none";
+    document.getElementById("admin-user-label").style.display = "none";
+    document.getElementById("btn-logout").style.display = "none";
+    openLoginModal("Đã đăng xuất phiên quản trị.");
+  });
+
+  document.getElementById("form-search").addEventListener("submit", (e) => {
+    e.preventDefault();
+    currentQuery = document.getElementById("inp-q").value.trim();
+    selectedOrderId = null;
+    void fetchOrders(true);
+  });
+
+  document.getElementById("btn-load-more").addEventListener("click", () => {
+    void fetchOrders(false);
+  });
+
+  document.getElementById("btn-refresh").addEventListener("click", () => {
+    void fetchOrders(true);
+    if (selectedOrderId) void loadOrderDetail(selectedOrderId);
+  });
+
+  renderStatusTabs();
+
+  (async () => {
+    const sessionRes = await apiRequest("/api/v1/admin/session");
+    if (!sessionRes.ok || !sessionRes.data) {
+      openLoginModal();
+      return;
+    }
+    csrfToken = sessionRes.data.csrfToken;
+    document.getElementById("admin-shell").style.display = "block";
+    const lbl = document.getElementById("admin-user-label");
+    lbl.textContent = sessionRes.data.user.email;
+    lbl.style.display = "inline";
+    document.getElementById("btn-logout").style.display = "inline-block";
+    await fetchOrders(true);
+  })();
+})();
+</script>
+</body>
+</html>

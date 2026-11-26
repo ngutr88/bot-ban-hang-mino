@@ -1,71 +1,89 @@
-# 🤖 Mino — Web bán hàng + Bot trả lời khách 24/7
+# 🤖 Mino — Web bán hàng COD + Bot trả lời theo từ khóa (M1 MVP)
 
-Trang web bán hàng nhỏ gọn gồm **4 file HTML**, bot chat tự động báo giá – nhận đơn COD 24/7.
-**Không cần cài đặt gì cả** — không server, không database, không framework. Mở file là chạy.
+Mino là ứng dụng bán hàng trực tuyến gọn nhẹ cho một cửa hàng: khách xem danh sách sản phẩm đang bán, hỏi trợ lý tự động theo từ khóa và gửi đơn COD; chủ shop đăng nhập để cấu hình sản phẩm/kịch bản bot và xử lý đơn hàng tập trung trên cơ sở dữ liệu PostgreSQL.
 
-> 🪪 Mã nguồn mở theo giấy phép **MIT** — thoải mái dùng, sửa, bán cho shop của mình.
+> 🪪 Mã nguồn mở theo giấy phép **MIT**.
 
 ---
 
-## ✨ Tính năng
+## ✨ Tính năng hiện có (M1)
 
-| Trang | Dành cho | Làm gì |
+| Trang / Thành phần | Dành cho | Chức năng |
 |---|---|---|
-| `index.html` | 🛒 Khách hàng | Trang bán hàng: lưới sản phẩm + bot **Mino** chat tư vấn, dò tên món báo giá, nhận đơn COD |
-| `admin.html` | 💬 Chủ shop | **Kênh Chat**: hội thoại live từ web, đơn hàng qua form, trả lời khách tay (đẩy ngược về widget), ghi chú nội bộ, cơ hội kinh doanh |
-| `caidat.html` | ⚙️ Chủ shop | Cài đặt bằng **form** (không cần sửa code): thông tin shop, món bán, kịch bản hỏi–đáp của bot |
-| `huong-dan.html` | 📘 Mọi người | Hướng dẫn 3 bước + nối Facebook Messenger & Zalo OA (đường AhaChat không cần code lẫn đường API chính chủ) |
+| `public/index.html` | 🛒 Khách hàng | Trang bán hàng kết nối API: danh sách sản phẩm đang bán, bot trả lời theo từ khóa (không tự bịa tồn kho), đặt đơn COD có chống gửi trùng (`Idempotency-Key`) |
+| `public/admin.html` | 📦 Chủ shop | Trang quản trị đơn hàng (yêu cầu đăng nhập): tìm kiếm, lọc trạng thái, xem snapshot sản phẩm, nhập phí ship khi xác nhận đơn và theo dõi lịch sử xử lý |
+| `public/caidat.html` | ⚙️ Chủ shop | Cài đặt cửa hàng (yêu cầu đăng nhập): cập nhật tên/liên hệ shop, thêm/sửa/ẩn sản phẩm và quản lý bảng luật từ khóa của bot |
+| `public/huong-dan.html` | 📘 Mọi người | Hướng dẫn khởi tạo môi trường, tạo tài khoản chủ shop và quy trình xử lý đơn COD |
+| `src/` + `prisma/` | 🖥️ Backend | Fastify API (`/api/v1`), xác thực phiên cookie `HttpOnly` + CSRF/Origin, Prisma ORM và schema/migration PostgreSQL |
 
-Bot hoạt động theo 2 lớp: khách nhắn **có tên món** → báo giá đúng món đó; không có tên món → dò **bảng từ khóa** (giá / ship / đặt hàng / đổi trả…); không khớp → nhờ chủ shop gọi lại (kèm gợi ý để lại SĐT).
+> **Phạm vi giai đoạn sau (chưa kích hoạt ở M1):** Inbox chat trực tuyến dùng chung (M2) và kết nối webhook Facebook Messenger / Zalo OA (M3).
 
 ---
 
-## 📥 Tải về
+## 🚀 Chạy môi trường phát triển local
 
-**Cách 1 — Tải ZIP (không cần biết git, dễ nhất)**
-1. Bấm nút xanh **`< > Code`** ở đầu trang repo
-2. Chọn **Download ZIP** → giải nén là đủ 4 trang bên trong
+### 1. Yêu cầu
+- **Node.js** `>= 24` (khuyến nghị Node.js LTS)
+- **PostgreSQL 18** (qua Docker Compose hoặc cài đặt local)
 
-**Cách 2 — Dùng git**
-```bash
-git clone https://github.com/binance9/bot-ban-hang-mino.git
+### 2. Khởi tạo nhanh
+
+```powershell
+# 1. Tạo file biến môi trường local (không commit lên Git)
+Copy-Item .env.example .env
+# Chỉnh sửa .env: đặt SESSION_SECRET ngẫu nhiên tối thiểu 32 ký tự và DATABASE_URL phù hợp
+
+# 2. Cài đặt dependencies
+npm install
+
+# 3. Khởi động PostgreSQL qua Docker Compose
+docker compose up -d db
+
+# 4. Chạy migration và nạp dữ liệu mẫu
+npm run db:migrate:dev
+npm run db:seed
+
+# 5. Tạo tài khoản quản trị chủ shop (nhập email & mật khẩu >= 12 ký tự)
+npm run admin:create
+
+# 6. Chạy ứng dụng
+npm run dev
 ```
 
-## ▶️ Chạy (5 giây)
-
-Mở file **`index.html`** bằng Chrome hoặc Edge — hết.
-
-> 💡 Muốn có **link gửi cho khách**: vào [netlify.com/drop](https://app.netlify.com/drop), kéo cả thư mục vào, nhận link miễn phí ngay lập tức.
-
-## ⚙️ Cài đặt thông tin shop (2 phút, không cần biết code)
-
-1. Mở **`caidat.html`** (hoặc bấm *⚙️ Cài đặt* trên menu)
-2. Điền tên shop, SĐT → **＋ Thêm món** nhập món bán (tên + giá)
-3. Thêm kịch bản: khách hỏi *"giá"* → bot trả câu gì; khách hỏi *"ship"* → trả câu gì
-4. Bấm **💾 Lưu cài đặt** → mở lại `index.html` (F5) — bot nói theo shop mình liền
-
-Sửa hỏng? Bấm **↺ Khôi phục mặc định** — về như cũ trong 1 giây.
-
-## 💬 Chăm khách hằng ngày
-
-Mở **`admin.html`** (bấm *🖥️ Kênh Chat*):
-- Hội thoại khách chat với bot hiện tự động theo phiên (cột 2, nhãn *Khách online*)
-- Đơn khách đặt qua form hiện sẵn kèm tên + SĐT + địa chỉ — gọi xác nhận là xuất kho
-- Khách bot chưa xử lý được → gõ trả lời tay, tin đẩy ngược về widget của khách ngay
-- Xem *Hướng dẫn* → mục 4 & 5 để nối bot với Facebook Messenger / Zalo OA
+Mở trình duyệt tại `http://localhost:3000`:
+- Trang bán hàng: `http://localhost:3000/`
+- Cài đặt shop & sản phẩm: `http://localhost:3000/caidat.html`
+- Quản lý đơn COD: `http://localhost:3000/admin.html`
+- Kiểm tra health: `http://localhost:3000/health/live` và `http://localhost:3000/health/ready`
 
 ---
 
-## 🧠 Nâng cấp bot
+## 🧪 Kiểm thử & Kiểm tra chất lượng mã
 
-Muốn bot hiểu câu tự do (thay vì dò từ khóa): chỉ cần **thay 1 hàm `botTraLoi()`** trong `index.html` — cắm API AI vào đó, phần còn lại giữ nguyên.
+```powershell
+npm run typecheck
+npm run lint
+npm test
+npm run build
+```
 
-## 📌 Nên biết
+> Bộ kiểm thử tích hợp (`npm test`) tự động khởi chạy PostgreSQL nhúng (PGlite) để kiểm tra thực tế migration SQL, ràng buộc khóa ngoại/check constraint, giao dịch đơn hàng, phân quyền session/CSRF và luồng E2E ngay cả khi máy chưa bật Docker; hoặc dùng `TEST_DATABASE_URL` nếu muốn trỏ vào PostgreSQL ngoài.
 
-- Dữ liệu (hội thoại, đơn, cài đặt) lưu **trong trình duyệt của máy đang mở** (localStorage). Muốn nhiều máy chung dữ liệu → cần thêm server nhỏ (gợi ý trong `huong-dan.html` mục 6)
-- Muốn **reset dữ liệu demo**: F12 → Application → Local Storage → xóa các khoá `donhang`, `mino_*`
-- Công nghệ: HTML + CSS + JavaScript thuần, **0 dependency**, tổng ~100 KB
+---
+
+## 📚 Tài liệu dự án
+
+- [Yêu cầu sản phẩm (PRD)](docs/PRODUCT_REQUIREMENTS.md)
+- [Kế hoạch triển khai theo thứ tự](docs/IMPLEMENTATION_PLAN.md)
+- [Định hướng và lộ trình phát triển](docs/ROADMAP.md)
+- [Kiến trúc hệ thống](docs/ARCHITECTURE.md)
+- [Thiết kế dữ liệu](docs/DATA_MODEL.md)
+- [Hợp đồng API](docs/API_CONTRACT.md)
+- [Hướng dẫn phát triển và chạy local](docs/DEVELOPMENT.md)
+- [Lưu ý bảo mật và dữ liệu khách hàng](docs/SECURITY.md)
+- [Vận hành và phát hành](docs/OPERATIONS.md)
+- [Quyết định stack (ADR-0001)](docs/decisions/ADR-0001-stack.md)
 
 ## 📄 Giấy phép
 
-[MIT](LICENSE) — dùng, sửa, bán thoải mái. Không cần xin ai.
+[MIT](LICENSE)

@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cài đặt cửa hàng — Quản trị Mino</title>
+<meta name="description" content="Quản lý thông tin cửa hàng, danh mục sản phẩm và kịch bản từ khóa của bot.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚙️</text></svg>">
+<style>
+  :root{
+    --bg:#f5f8ff; --card:#fff; --vien:#e4eaf3;
+    --chu:#1e2a3b; --mo:#6b7a90;
+    --xanh:#2e6cf6; --xanh-dam:#1d4ed8; --xanh-nen:#e8f0fe;
+    --tim:#8b5cf6;
+    --luc:#16a34a; --luc-nen:#e5f6ec;
+    --cam-nen:#fdf1dd; --cam-chu:#b45309;
+    --do:#dc2626; --do-nen:#fef2f2; --toi:#1f2b45;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:"Inter","Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;
+    background:var(--bg);color:var(--chu);line-height:1.6;font-size:15px}
+  a{color:var(--xanh-dam);text-decoration:none}
+  .khung{max-width:920px;margin:0 auto;padding:0 20px}
+
+  .top{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.95);backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--vien)}
+  .top .khung{display:flex;align-items:center;gap:12px;height:60px;flex-wrap:wrap}
+  .logo{font-weight:800;display:flex;align-items:center;gap:8px;color:var(--chu)}
+  .logo .dau{width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,var(--xanh),var(--tim));
+    color:#fff;display:grid;place-items:center;font-size:15px}
+  .top nav{margin-left:auto;display:flex;align-items:center;gap:16px;font-size:.9rem;font-weight:600}
+  .top nav a{color:var(--mo)}
+  .top nav a:hover{color:var(--xanh)}
+
+  .btn{
+    border:none;border-radius:10px;padding:9px 16px;font:inherit;font-weight:700;cursor:pointer;
+    font-size:.9rem;transition:filter .15s ease;
+  }
+  .btn:disabled{opacity:.6;cursor:not-allowed}
+  .btn-chinh{background:linear-gradient(135deg,var(--xanh),var(--tim));color:#fff}
+  .btn-vien{background:#fff;border:1px solid var(--vien);color:var(--chu)}
+  .btn-do{background:var(--do-nen);color:var(--do);border:1px solid #fecaca}
+
+  .hero{text-align:center;padding:30px 0 8px}
+  .hero h1{font-size:1.65rem;font-weight:800}
+  .hero p{color:var(--mo);margin-top:4px}
+
+  .card{background:var(--card);border:1px solid var(--vien);border-radius:18px;
+    padding:22px 24px;margin:18px 0}
+  .card h2{font-size:1.15rem;display:flex;align-items:center;gap:10px;margin-bottom:4px}
+  .card h2 .so{width:28px;height:28px;border-radius:8px;flex:none;
+    background:linear-gradient(135deg,var(--xanh),var(--tim));color:#fff;
+    display:grid;place-items:center;font-size:.85rem}
+  .card .goi-y{color:var(--mo);font-size:.88rem;margin-bottom:14px}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media (max-width:680px){.grid2{grid-template-columns:1fr}}
+  label{display:block;font-weight:700;font-size:.86rem;margin:10px 0 4px}
+  input[type=text],input[type=email],input[type=password],input[type=number],textarea,select{
+    width:100%;padding:9px 12px;border:1px solid var(--vien);border-radius:10px;
+    font:inherit;font-size:.93rem;background:#fbfcff}
+  input:focus,textarea:focus,select:focus{outline:2px solid var(--xanh);border-color:transparent}
+
+  .thong-bao{display:none;border-radius:10px;padding:10px 14px;font-weight:600;margin:12px 0;font-size:.9rem}
+  .thong-bao.ok{display:block;background:var(--luc-nen);color:#14532d}
+  .thong-bao.loi{display:block;background:var(--do-nen);color:var(--do)}
+
+  .hang-item{
+    background:#f8faff;border:1px solid var(--vien);border-radius:14px;padding:14px;margin-bottom:12px;
+  }
+  .hang-sp-grid{display:grid;grid-template-columns:72px 1.4fr 1fr 130px;gap:10px;align-items:end}
+  .hang-hd-grid{display:grid;grid-template-columns:1.4fr 110px 120px;gap:10px;align-items:end}
+  @media (max-width:740px){
+    .hang-sp-grid,.hang-hd-grid{grid-template-columns:1fr}
+  }
+  .hang-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:10px}
+
+  .kenh{display:flex;gap:14px;align-items:center;background:#f8faff;border:1px solid var(--vien);
+    border-radius:14px;padding:14px 16px;margin-bottom:10px}
+  .trang-thai{margin-left:auto;font-size:.78rem;font-weight:800;border-radius:99px;padding:4px 11px}
+  .trang-thai.dang{background:var(--luc-nen);color:#15803d}
+  .trang-thai.cho{background:#eef2f7;color:var(--mo)}
+
+  /* LOGIN MODAL / GUARD */
+  .phu-login{
+    position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:100;
+    display:none;place-items:center;padding:16px;
+  }
+  .phu-login.mo{display:grid}
+  .hop-login{
+    background:#fff;border-radius:18px;padding:26px;width:100%;max-width:400px;
+    box-shadow:0 20px 50px rgba(15,23,42,.25);
+  }
+  footer{background:var(--toi);color:#c3cde0;text-align:center;padding:22px 0;margin-top:30px;font-size:.88rem}
+  footer a{color:#fff}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="khung">
+    <a class="logo" href="index.html"><span class="dau">🧁</span><span id="nav-shop-name">Cửa hàng của Mino</span></a>
+    <nav aria-label="Điều hướng quản trị">
+      <a href="index.html">Trang bán hàng</a>
+      <a href="admin.html">📦 Quản lý đơn</a>
+      <a href="huong-dan.html">Hướng dẫn</a>
+      <span id="admin-email-badge" style="color:var(--xanh-dam);display:none"></span>
+      <button type="button" class="btn btn-vien" id="btn-logout" style="display:none;padding:6px 12px;font-size:.82rem">Đăng xuất</button>
+    </nav>
+  </div>
+</header>
+
+<div class="khung" id="main-content" style="display:none">
+  <div class="hero">
+    <h1>⚙️ Cài đặt cửa hàng &amp; danh mục</h1>
+    <p>Mọi thay đổi được lưu trực tiếp lên cơ sở dữ liệu máy chủ và áp dụng cho mọi khách truy cập.</p>
+  </div>
+
+  <!-- 1. THÔNG TIN SHOP -->
+  <section class="card">
+    <h2><span class="so">1</span>Thông tin cửa hàng &amp; câu trả lời mặc định</h2>
+    <p class="goi-y">Thông tin công khai hiển thị trên trang bán hàng và cấu hình trợ lý từ khóa.</p>
+    <form id="form-shop">
+      <div class="grid2">
+        <div>
+          <label for="shop-name">Tên cửa hàng *</label>
+          <input type="text" id="shop-name" required maxlength="120">
+        </div>
+        <div>
+          <label for="bot-name">Tên trợ lý (bot) *</label>
+          <input type="text" id="bot-name" required maxlength="60">
+        </div>
+        <div>
+          <label for="shop-phone">Số điện thoại công khai</label>
+          <input type="text" id="shop-phone" maxlength="40" placeholder="VD: 0900 000 000">
+        </div>
+        <div>
+          <label for="shop-address">Địa chỉ công khai</label>
+          <input type="text" id="shop-address" maxlength="500" placeholder="VD: Số 1 Đường Hoa, TP.HCM">
+        </div>
+      </div>
+      <label for="bot-fallback">Câu trả lời mặc định khi không khớp từ khóa *</label>
+      <textarea id="bot-fallback" rows="2" required maxlength="1000"></textarea>
+
+      <div id="msg-shop" class="thong-bao" role="status"></div>
+      <div style="margin-top:12px;display:flex;justify-content:flex-end">
+        <button type="submit" class="btn btn-chinh" id="btn-save-shop">💾 Lưu thông tin shop</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- 2. SẢN PHẨM -->
+  <section class="card">
+    <h2><span class="so">2</span>Danh mục sản phẩm</h2>
+    <p class="goi-y">Sản phẩm trạng thái “Đang bán” xuất hiện ở trang khách. Dùng “Đang ẩn” hoặc “Lưu trữ” thay cho xóa cứng để bảo toàn lịch sử đơn hàng.</p>
+
+    <form id="form-add-product" class="hang-item" style="background:#eff6ff;border-color:#bfdbfe">
+      <b style="font-size:.92rem;color:var(--xanh-dam)">＋ Thêm sản phẩm mới</b>
+      <div class="hang-sp-grid">
+        <div>
+          <label for="new-sp-emoji">Emoji</label>
+          <input type="text" id="new-sp-emoji" maxlength="16" placeholder="🎁">
+        </div>
+        <div>
+          <label for="new-sp-name">Tên sản phẩm *</label>
+          <input type="text" id="new-sp-name" required maxlength="160" placeholder="VD: Nến thơm lavender">
+        </div>
+        <div>
+          <label for="new-sp-price">Giá VND (số nguyên) *</label>
+          <input type="number" id="new-sp-price" required min="0" step="1" placeholder="185000">
+        </div>
+        <div>
+          <label for="new-sp-status">Trạng thái</label>
+          <select id="new-sp-status">
+            <option value="active">Đang bán</option>
+            <option value="hidden">Đang ẩn</option>
+          </select>
+        </div>
+      </div>
+      <label for="new-sp-desc">Mô tả ngắn</label>
+      <input type="text" id="new-sp-desc" maxlength="1000" placeholder="Mô tả đặc điểm sản phẩm…">
+      <div id="msg-add-product" class="thong-bao" role="status"></div>
+      <div class="hang-actions">
+        <button type="submit" class="btn btn-chinh">Tạo sản phẩm</button>
+      </div>
+    </form>
+
+    <div id="msg-products" class="thong-bao" role="status"></div>
+    <div id="product-list"></div>
+  </section>
+
+  <!-- 3. LUẬT BOT -->
+  <section class="card">
+    <h2><span class="so">3</span>Kịch bản từ khóa của bot</h2>
+    <p class="goi-y">Độ ưu tiên (priority) nhỏ hơn sẽ được kiểm tra trước. Từ khóa phân tách bằng dấu phẩy.</p>
+
+    <form id="form-add-rule" class="hang-item" style="background:#eff6ff;border-color:#bfdbfe">
+      <b style="font-size:.92rem;color:var(--xanh-dam)">＋ Thêm kịch bản mới</b>
+      <div class="hang-hd-grid">
+        <div>
+          <label for="new-rule-kw">Từ khóa (cách nhau dấu phẩy) *</label>
+          <input type="text" id="new-rule-kw" required placeholder="VD: khuyến mãi, giảm giá">
+        </div>
+        <div>
+          <label for="new-rule-prio">Độ ưu tiên *</label>
+          <input type="number" id="new-rule-prio" value="100" step="1" required>
+        </div>
+        <div>
+          <label for="new-rule-enabled">Trạng thái</label>
+          <select id="new-rule-enabled">
+            <option value="true">Đang bật</option>
+            <option value="false">Tạm tắt</option>
+          </select>
+        </div>
+      </div>
+      <label for="new-rule-ans">Câu trả lời *</label>
+      <textarea id="new-rule-ans" rows="2" required maxlength="1000" placeholder="Nội dung bot phản hồi (hiển thị dạng văn bản thuần)…"></textarea>
+      <div id="msg-add-rule" class="thong-bao" role="status"></div>
+      <div class="hang-actions">
+        <button type="submit" class="btn btn-chinh">Tạo kịch bản</button>
+      </div>
+    </form>
+
+    <div id="msg-rules" class="thong-bao" role="status"></div>
+    <div id="rule-list"></div>
+  </section>
+
+  <!-- 4. KÊNH NGOÀI -->
+  <section class="card">
+    <h2><span class="so">4</span>Kênh bán hàng &amp; tích hợp</h2>
+    <p class="goi-y">Trạng thái hỗ trợ thực tế trong phiên bản M1 hiện tại:</p>
+    <div class="kenh">
+      <div>
+        <b>🌐 Website bán hàng &amp; Đặt đơn COD</b>
+        <div style="font-size:.86rem;color:var(--mo)">Đang kết nối cơ sở dữ liệu máy chủ.</div>
+      </div>
+      <span class="trang-thai dang">Đang hoạt động</span>
+    </div>
+    <div class="kenh">
+      <div>
+        <b>💬 Inbox chat trực tiếp &amp; Facebook Messenger / Zalo OA</b>
+        <div style="font-size:.86rem;color:var(--mo)">Thuộc lộ trình giai đoạn M2/M3 — chưa kích hoạt trong M1.</div>
+      </div>
+      <span class="trang-thai cho">Chưa hỗ trợ (M2/M3)</span>
+    </div>
+  </section>
+</div>
+
+<!-- LOGIN OVERLAY (preserves unsaved form state if session expires) -->
+<div class="phu-login" id="login-modal" role="dialog" aria-modal="true" aria-labelledby="login-title">
+  <div class="hop-login">
+    <h2 id="login-title" style="font-size:1.25rem;margin-bottom:4px">🔐 Đăng nhập quản trị</h2>
+    <p id="login-desc" style="color:var(--mo);font-size:.88rem;margin-bottom:14px">
+      Sử dụng tài khoản chủ shop đã khởi tạo qua CLI quản trị.
+    </p>
+    <form id="form-login">
+      <label for="login-email">Email quản trị</label>
+      <input type="email" id="login-email" required autocomplete="username" placeholder="owner@example.com">
+      <label for="login-password">Mật khẩu</label>
+      <input type="password" id="login-password" required autocomplete="current-password">
+      <div id="msg-login" class="thong-bao" role="alert"></div>
+      <button type="submit" class="btn btn-chinh" id="btn-login-submit" style="width:100%;margin-top:14px">Đăng nhập</button>
+    </form>
+  </div>
+</div>
+
+<footer>
+  <div class="khung">Quản trị Mino — <a href="index.html">Trang bán hàng</a> · <a href="admin.html">Quản lý đơn hàng</a> · <a href="huong-dan.html">Hướng dẫn</a></div>
+</footer>
+
+<script>
+(() => {
+  let csrfToken = null;
+  let initialLoaded = false;
+
+  function showBanner(id, type, text) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.className = `thong-bao ${type}`;
+    el.textContent = text;
+  }
+
+  function clearBanner(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.className = "thong-bao";
+    el.textContent = "";
+  }
+
+  function openLoginModal(reasonText) {
+    if (reasonText) {
+      document.getElementById("login-desc").textContent = reasonText;
+    }
+    clearBanner("msg-login");
+    document.getElementById("login-modal").classList.add("mo");
+    document.getElementById("login-email").focus();
+  }
+
+  function closeLoginModal() {
+    document.getElementById("login-modal").classList.remove("mo");
+  }
+
+  async function apiRequest(path, options = {}) {
+    const method = options.method || "GET";
+    const headers = { ...(options.headers || {}) };
+    if (options.body !== undefined) {
+      headers["Content-Type"] = "application/json";
+    }
+    if (method !== "GET" && method !== "HEAD" && csrfToken) {
+      headers["X-CSRF-Token"] = csrfToken;
+    }
+
+    const res = await fetch(path, {
+      ...options,
+      method,
+      headers,
+      credentials: "same-origin",
+      body: options.body !== undefined ? JSON.stringify(options.body) : undefined
+    });
+
+    if (res.status === 204) {
+      return { ok: true, status: 204, data: null };
+    }
+
+    const payload = await res.json().catch(() => null);
+    if (res.status === 401 && path !== "/api/v1/admin/session") {
+      csrfToken = null;
+      openLoginModal(
+        "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại — nội dung bạn đang nhập trên trang vẫn được giữ nguyên."
+      );
+    }
+    return {
+      ok: res.ok,
+      status: res.status,
+      data: payload?.data ?? null,
+      nextCursor: payload?.nextCursor ?? null,
+      errorMessage: payload?.error?.message || "Thao tác chưa thành công."
+    };
+  }
+
+  function setLoggedInHeader(user) {
+    const badge = document.getElementById("admin-email-badge");
+    const btnLogout = document.getElementById("btn-logout");
+    badge.textContent = user.email;
+    badge.style.display = "inline";
+    btnLogout.style.display = "inline-block";
+    document.getElementById("main-content").style.display = "block";
+  }
+
+  async function loadAllAdminProducts() {
+    const all = [];
+    let cursor = null;
+    do {
+      const qs = new URLSearchParams({ limit: "100" });
+      if (cursor) qs.set("cursor", cursor);
+      const res = await apiRequest(`/api/v1/admin/products?${qs.toString()}`);
+      if (!res.ok) throw new Error(res.errorMessage);
+      all.push(...(res.data || []));
+      cursor = res.nextCursor;
+    } while (cursor);
+    return all;
+  }
+
+  function renderProductsList(products) {
+    const container = document.getElementById("product-list");
+    container.replaceChildren();
+    if (products.length === 0) {
+      const empty = document.createElement("p");
+      empty.style.color = "var(--mo)";
+      empty.textContent = "Chưa có sản phẩm nào.";
+      container.appendChild(empty);
+      return;
+    }
+
+    products.forEach((p) => {
+      const box = document.createElement("div");
+      box.className = "hang-item";
+
+      const grid = document.createElement("div");
+      grid.className = "hang-sp-grid";
+
+      const wrapInput = (lblText, inputEl) => {
+        const w = document.createElement("div");
+        const l = document.createElement("label");
+        l.textContent = lblText;
+        w.append(l, inputEl);
+        return w;
+      };
+
+      const inpEmoji = document.createElement("input");
+      inpEmoji.type = "text";
+      inpEmoji.maxLength = 16;
+      inpEmoji.value = p.emoji || "";
+
+      const inpName = document.createElement("input");
+      inpName.type = "text";
+      inpName.maxLength = 160;
+      inpName.value = p.name;
+
+      const inpPrice = document.createElement("input");
+      inpPrice.type = "number";
+      inpPrice.min = "0";
+      inpPrice.step = "1";
+      inpPrice.value = p.priceVnd;
+
+      const selStatus = document.createElement("select");
+      [
+        ["active", "Đang bán"],
+        ["hidden", "Đang ẩn"],
+        ["archived", "Lưu trữ"]
+      ].forEach(([val, text]) => {
+        const o = document.createElement("option");
+        o.value = val;
+        o.textContent = text;
+        if (p.status === val) o.selected = true;
+        selStatus.appendChild(o);
+      });
+
+      grid.append(
+        wrapInput("Emoji", inpEmoji),
+        wrapInput("Tên sản phẩm", inpName),
+        wrapInput("Giá VND", inpPrice),
+        wrapInput("Trạng thái", selStatus)
+      );
+
+      const descLabel = document.createElement("label");
+      descLabel.textContent = "Mô tả";
+      const inpDesc = document.createElement("input");
+      inpDesc.type = "text";
+      inpDesc.maxLength = 1000;
+      inpDesc.value = p.description || "";
+
+      const actions = document.createElement("div");
+      actions.className = "hang-actions";
+      const saveBtn = document.createElement("button");
+      saveBtn.type = "button";
+      saveBtn.className = "btn btn-vien";
+      saveBtn.textContent = "💾 Cập nhật món này";
+
+      saveBtn.addEventListener("click", async () => {
+        clearBanner("msg-products");
+        const priceStr = String(inpPrice.value).trim();
+        if (!/^(0|[1-9][0-9]{0,14})$/.test(priceStr)) {
+          showBanner("msg-products", "loi", "Giá sản phẩm phải là số nguyên VND không âm.");
+          return;
+        }
+        saveBtn.disabled = true;
+        const r = await apiRequest(`/api/v1/admin/products/${p.id}`, {
+          method: "PATCH",
+          body: {
+            emoji: inpEmoji.value.trim() || null,
+            name: inpName.value.trim(),
+            priceVnd: priceStr,
+            description: inpDesc.value.trim() || null,
+            status: selStatus.value
+          }
+        });
+        saveBtn.disabled = false;
+        if (!r.ok) {
+          showBanner("msg-products", "loi", r.errorMessage);
+          return;
+        }
+        showBanner("msg-products", "ok", `Đã cập nhật sản phẩm "${r.data.name}".`);
+      });
+
+      actions.appendChild(saveBtn);
+      box.append(grid, descLabel, inpDesc, actions);
+      container.appendChild(box);
+    });
+  }
+
+  function renderRulesList(rules) {
+    const container = document.getElementById("rule-list");
+    container.replaceChildren();
+    if (rules.length === 0) {
+      const empty = document.createElement("p");
+      empty.style.color = "var(--mo)";
+      empty.textContent = "Chưa có kịch bản từ khóa nào.";
+      container.appendChild(empty);
+      return;
+    }
+
+    rules.forEach((rule) => {
+      const box = document.createElement("div");
+      box.className = "hang-item";
+
+      const grid = document.createElement("div");
+      grid.className = "hang-hd-grid";
+
+      const wrapInput = (lblText, inputEl) => {
+        const w = document.createElement("div");
+        const l = document.createElement("label");
+        l.textContent = lblText;
+        w.append(l, inputEl);
+        return w;
+      };
+
+      const inpKw = document.createElement("input");
+      inpKw.type = "text";
+      inpKw.value = (rule.keywords || []).join(", ");
+
+      const inpPrio = document.createElement("input");
+      inpPrio.type = "number";
+      inpPrio.step = "1";
+      inpPrio.value = String(rule.priority);
+
+      const selEnabled = document.createElement("select");
+      [
+        ["true", "Đang bật"],
+        ["false", "Tạm tắt"]
+      ].forEach(([v, txt]) => {
+        const o = document.createElement("option");
+        o.value = v;
+        o.textContent = txt;
+        if (String(rule.enabled) === v) o.selected = true;
+        selEnabled.appendChild(o);
+      });
+
+      grid.append(
+        wrapInput("Từ khóa (phân tách dấu phẩy)", inpKw),
+        wrapInput("Độ ưu tiên", inpPrio),
+        wrapInput("Trạng thái", selEnabled)
+      );
+
+      const ansLabel = document.createElement("label");
+      ansLabel.textContent = "Câu trả lời";
+      const txtAns = document.createElement("textarea");
+      txtAns.rows = 2;
+      txtAns.maxLength = 1000;
+      txtAns.value = rule.answer;
+
+      const actions = document.createElement("div");
+      actions.className = "hang-actions";
+      const saveBtn = document.createElement("button");
+      saveBtn.type = "button";
+      saveBtn.className = "btn btn-vien";
+      saveBtn.textContent = "💾 Cập nhật kịch bản";
+
+      saveBtn.addEventListener("click", async () => {
+        clearBanner("msg-rules");
+        const keywords = inpKw.value
+          .split(",")
+          .map((s) => s.trim())
+          .filter(Boolean);
+        if (keywords.length === 0) {
+          showBanner("msg-rules", "loi", "Vui lòng nhập ít nhất 1 từ khóa.");
+          return;
+        }
+        saveBtn.disabled = true;
+        const r = await apiRequest(`/api/v1/admin/bot-rules/${rule.id}`, {
+          method: "PATCH",
+          body: {
+            keywords,
+            priority: Number(inpPrio.value),
+            enabled: selEnabled.value === "true",
+            answer: txtAns.value.trim()
+          }
+        });
+        saveBtn.disabled = false;
+        if (!r.ok) {
+          showBanner("msg-rules", "loi", r.errorMessage);
+          return;
+        }
+        showBanner("msg-rules", "ok", "Đã cập nhật kịch bản bot.");
+      });
+
+      actions.appendChild(saveBtn);
+      box.append(grid, ansLabel, txtAns, actions);
+      container.appendChild(box);
+    });
+  }
+
+  async function loadDashboardData() {
+    const [shopRes, products, rulesRes] = await Promise.all([
+      apiRequest("/api/v1/admin/shop"),
+      loadAllAdminProducts(),
+      apiRequest("/api/v1/admin/bot-rules")
+    ]);
+
+    if (shopRes.ok && shopRes.data) {
+      const s = shopRes.data;
+      document.getElementById("nav-shop-name").textContent = s.name;
+      document.getElementById("shop-name").value = s.name;
+      document.getElementById("bot-name").value = s.botName;
+      document.getElementById("shop-phone").value = s.publicPhone || "";
+      document.getElementById("shop-address").value = s.publicAddress || "";
+      document.getElementById("bot-fallback").value = s.fallbackReply;
+    }
+
+    renderProductsList(products);
+    if (rulesRes.ok) {
+      renderRulesList(rulesRes.data || []);
+    }
+    initialLoaded = true;
+  }
+
+  /* ===== EVENTS ===== */
+  document.getElementById("form-login").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    clearBanner("msg-login");
+    const btn = document.getElementById("btn-login-submit");
+    btn.disabled = true;
+    const email = document.getElementById("login-email").value.trim();
+    const password = document.getElementById("login-password").value;
+
+    const r = await apiRequest("/api/v1/admin/session", {
+      method: "POST",
+      body: { email, password }
+    });
+    btn.disabled = false;
+
+    if (!r.ok || !r.data) {
+      showBanner("msg-login", "loi", r.errorMessage);
+      return;
+    }
+
+    csrfToken = r.data.csrfToken;
+    document.getElementById("login-password").value = "";
+    setLoggedInHeader(r.data.user);
+    closeLoginModal();
+
+    if (!initialLoaded) {
+      await loadDashboardData();
+    }
+  });
+
+  document.getElementById("btn-logout").addEventListener("click", async () => {
+    await apiRequest("/api/v1/admin/session", { method: "DELETE" });
+    csrfToken = null;
+    initialLoaded = false;
+    document.getElementById("main-content").style.display = "none";
+    document.getElementById("admin-email-badge").style.display = "none";
+    document.getElementById("btn-logout").style.display = "none";
+    openLoginModal("Bạn đã đăng xuất an toàn.");
+  });
+
+  document.getElementById("form-shop").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    clearBanner("msg-shop");
+    const btn = document.getElementById("btn-save-shop");
+    btn.disabled = true;
+    const r = await apiRequest("/api/v1/admin/shop", {
+      method: "PATCH",
+      body: {
+        name: document.getElementById("shop-name").value.trim(),
+        botName: document.getElementById("bot-name").value.trim(),
+        publicPhone: document.getElementById("shop-phone").value.trim() || null,
+        publicAddress: document.getElementById("shop-address").value.trim() || null,
+        fallbackReply: document.getElementById("bot-fallback").value.trim()
+      }
+    });
+    btn.disabled = false;
+    if (!r.ok) {
+      showBanner("msg-shop", "loi", r.errorMessage);
+      return;
+    }
+    document.getElementById("nav-shop-name").textContent = r.data.name;
+    showBanner("msg-shop", "ok", "Đã lưu thông tin cửa hàng thành công.");
+  });
+
+  document.getElementById("form-add-product").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    clearBanner("msg-add-product");
+    const priceStr = String(document.getElementById("new-sp-price").value).trim();
+    if (!/^(0|[1-9][0-9]{0,14})$/.test(priceStr)) {
+      showBanner("msg-add-product", "loi", "Giá sản phẩm phải là số nguyên VND không âm.");
+      return;
+    }
+    const r = await apiRequest("/api/v1/admin/products", {
+      method: "POST",
+      body: {
+        emoji: document.getElementById("new-sp-emoji").value.trim() || null,
+        name: document.getElementById("new-sp-name").value.trim(),
+        priceVnd: priceStr,
+        status: document.getElementById("new-sp-status").value,
+        description: document.getElementById("new-sp-desc").value.trim() || null
+      }
+    });
+    if (!r.ok) {
+      showBanner("msg-add-product", "loi", r.errorMessage);
+      return;
+    }
+    e.target.reset();
+    showBanner("msg-add-product", "ok", `Đã thêm sản phẩm "${r.data.name}".`);
+    const products = await loadAllAdminProducts();
+    renderProductsList(products);
+  });
+
+  document.getElementById("form-add-rule").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    clearBanner("msg-add-rule");
+    const keywords = document.getElementById("new-rule-kw").value
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+    if (keywords.length === 0) {
+      showBanner("msg-add-rule", "loi", "Cần ít nhất 1 từ khóa.");
+      return;
+    }
+    const r = await apiRequest("/api/v1/admin/bot-rules", {
+      method: "POST",
+      body: {
+        keywords,
+        priority: Number(document.getElementById("new-rule-prio").value),
+        enabled: document.getElementById("new-rule-enabled").value === "true",
+        answer: document.getElementById("new-rule-ans").value.trim()
+      }
+    });
+    if (!r.ok) {
+      showBanner("msg-add-rule", "loi", r.errorMessage);
+      return;
+    }
+    e.target.reset();
+    document.getElementById("new-rule-prio").value = "100";
+    showBanner("msg-add-rule", "ok", "Đã tạo kịch bản từ khóa mới.");
+    const rulesRes = await apiRequest("/api/v1/admin/bot-rules");
+    if (rulesRes.ok) renderRulesList(rulesRes.data || []);
+  });
+
+  /* ===== INITIAL SESSION CHECK ===== */
+  (async () => {
+    const sessionRes = await apiRequest("/api/v1/admin/session");
+    if (!sessionRes.ok || !sessionRes.data) {
+      openLoginModal();
+      return;
+    }
+    csrfToken = sessionRes.data.csrfToken;
+    setLoggedInHeader(sessionRes.data.user);
+    await loadDashboardData();
+  })();
+})();
+</script>
+</body>
+</html>

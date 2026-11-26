@@ -1,0 +1,192 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AdminUserStatus {
+  active
+  disabled
+
+  @@map("admin_user_status")
+}
+
+enum ProductStatus {
+  active
+  hidden
+  archived
+
+  @@map("product_status")
+}
+
+enum OrderStatus {
+  new
+  confirmed
+  preparing
+  shipping
+  completed
+  cancelled
+
+  @@map("order_status")
+}
+
+model Shop {
+  id            String   @id @default(uuid()) @db.Uuid
+  name          String   @db.VarChar(120)
+  publicPhone   String?  @map("public_phone") @db.VarChar(40)
+  publicAddress String?  @map("public_address") @db.VarChar(500)
+  timezone      String   @default("Asia/Ho_Chi_Minh") @db.VarChar(64)
+  currency      String   @default("VND") @db.Char(3)
+  botName       String   @map("bot_name") @db.VarChar(60)
+  fallbackReply String   @map("fallback_reply") @db.VarChar(1000)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  adminUsers AdminUser[]
+  products   Product[]
+  botRules   BotRule[]
+  orders     Order[]
+  orderItems OrderItem[]
+  orderEvents OrderEvent[]
+
+  @@map("shops")
+}
+
+model AdminUser {
+  id              String          @id @default(uuid()) @db.Uuid
+  shopId          String          @map("shop_id") @db.Uuid
+  emailNormalized String          @map("email_normalized") @db.VarChar(254)
+  passwordHash    String          @map("password_hash")
+  status          AdminUserStatus @default(active)
+  lastLoginAt     DateTime?       @map("last_login_at") @db.Timestamptz(6)
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  shop        Shop           @relation(fields: [shopId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  sessions    AdminSession[]
+  orderEvents OrderEvent[]
+
+  @@unique([shopId, emailNormalized], map: "admin_users_shop_email_key")
+  @@map("admin_users")
+}
+
+model AdminSession {
+  id               String    @id @default(uuid()) @db.Uuid
+  adminUserId      String    @map("admin_user_id") @db.Uuid
+  sessionTokenHash Bytes     @unique(map: "admin_sessions_token_hash_key") @map("session_token_hash") @db.ByteA
+  csrfTokenHash    Bytes     @map("csrf_token_hash") @db.ByteA
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  lastSeenAt       DateTime  @default(now()) @map("last_seen_at") @db.Timestamptz(6)
+  expiresAt        DateTime  @map("expires_at") @db.Timestamptz(6)
+  revokedAt        DateTime? @map("revoked_at") @db.Timestamptz(6)
+
+  adminUser AdminUser @relation(fields: [adminUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([adminUserId], map: "admin_sessions_user_idx")
+  @@map("admin_sessions")
+}
+
+model Product {
+  id          String        @id @default(uuid()) @db.Uuid
+  shopId      String        @map("shop_id") @db.Uuid
+  name        String        @db.VarChar(160)
+  description String?       @db.VarChar(1000)
+  priceVnd    BigInt        @map("price_vnd")
+  emoji       String?       @db.VarChar(16)
+  status      ProductStatus @default(active)
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime      @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  shop       Shop        @relation(fields: [shopId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  orderItems OrderItem[]
+
+  @@index([shopId, status, name], map: "products_shop_status_name_idx")
+  @@map("products")
+}
+
+model BotRule {
+  id        String   @id @default(uuid()) @db.Uuid
+  shopId    String   @map("shop_id") @db.Uuid
+  keywords  String[]
+  answer    String   @db.VarChar(1000)
+  priority  Int      @default(100)
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([shopId, enabled, priority], map: "bot_rules_shop_enabled_priority_idx")
+  @@map("bot_rules")
+}
+
+model Order {
+  id                 String      @id @default(uuid()) @db.Uuid
+  shopId             String      @map("shop_id") @db.Uuid
+  orderNo            String      @map("order_no") @db.VarChar(40)
+  status             OrderStatus @default(new)
+  recipientName      String      @map("recipient_name") @db.VarChar(120)
+  recipientPhone     String      @map("recipient_phone") @db.VarChar(32)
+  recipientPhoneNorm String      @map("recipient_phone_norm") @db.VarChar(32)
+  shippingAddress    String      @map("shipping_address") @db.VarChar(500)
+  customerNote       String?     @map("customer_note") @db.VarChar(1000)
+  subtotalVnd        BigInt      @map("subtotal_vnd")
+  shippingFeeVnd     BigInt?     @map("shipping_fee_vnd")
+  totalVnd           BigInt?     @map("total_vnd")
+  idempotencyKey     String      @map("idempotency_key") @db.VarChar(128)
+  requestFingerprint Bytes       @map("request_fingerprint") @db.ByteA
+  createdAt          DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime    @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  shop   Shop         @relation(fields: [shopId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  items  OrderItem[]
+  events OrderEvent[]
+
+  @@unique([shopId, orderNo], map: "orders_shop_order_no_key")
+  @@unique([shopId, idempotencyKey], map: "orders_shop_idempotency_key")
+  @@unique([id, shopId], map: "orders_id_shop_key")
+  @@index([shopId, createdAt(sort: Desc)], map: "orders_shop_created_desc_idx")
+  @@index([shopId, status, createdAt(sort: Desc)], map: "orders_shop_status_created_desc_idx")
+  @@index([shopId, recipientPhoneNorm], map: "orders_shop_phone_norm_idx")
+  @@map("orders")
+}
+
+model OrderItem {
+  id                  String  @id @default(uuid()) @db.Uuid
+  shopId              String  @map("shop_id") @db.Uuid
+  orderId             String  @map("order_id") @db.Uuid
+  productId           String? @map("product_id") @db.Uuid
+  productNameSnapshot String  @map("product_name_snapshot") @db.VarChar(160)
+  unitPriceVnd        BigInt  @map("unit_price_vnd")
+  quantity            Int
+  lineTotalVnd        BigInt  @map("line_total_vnd")
+
+  shop    Shop     @relation(fields: [shopId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  order   Order    @relation(fields: [orderId, shopId], references: [id, shopId], onDelete: Restrict, onUpdate: Restrict)
+  product Product? @relation(fields: [productId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([orderId], map: "order_items_order_idx")
+  @@map("order_items")
+}
+
+model OrderEvent {
+  id               String       @id @default(uuid()) @db.Uuid
+  shopId           String       @map("shop_id") @db.Uuid
+  orderId          String       @map("order_id") @db.Uuid
+  actorAdminUserId String?      @map("actor_admin_user_id") @db.Uuid
+  eventType        String       @map("event_type") @db.VarChar(64)
+  oldStatus        OrderStatus? @map("old_status")
+  newStatus        OrderStatus? @map("new_status")
+  note             String?      @db.VarChar(1000)
+  createdAt        DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  shop       Shop       @relation(fields: [shopId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  order      Order      @relation(fields: [orderId, shopId], references: [id, shopId], onDelete: Restrict, onUpdate: Restrict)
+  actorAdmin AdminUser? @relation(fields: [actorAdminUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([orderId, createdAt], map: "order_events_order_created_idx")
+  @@map("order_events")
+}

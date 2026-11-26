@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cửa hàng của Mino — Đặt hàng COD nhanh gọn, bot hỗ trợ 24/7</title>
+<meta name="description" content="Trang bán hàng trực tuyến với trợ lý tự động theo từ khóa và đặt đơn COD minh bạch.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧁</text></svg>">
+<style>
+  :root{
+    --tuody: #2e6cf6;
+    --tuody-dam: #1d4ed8;
+    --hong: #8b5cf6;
+    --nensang: #f5f8ff;
+    --chu-den: #1e2a3b;
+    --chu-mo: #6b7a90;
+    --khung: #e4eaf3;
+    --xanh-la: #10b981;
+    --do: #dc2626;
+    --do-nen: #fef2f2;
+    --vang-nen: #fffbeb;
+    --vang-chu: #92400e;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;
+    color:var(--chu-den);
+    background:var(--nensang);
+    line-height:1.6;
+  }
+  a{text-decoration:none;color:inherit}
+  .khung-ngoai{max-width:1120px;margin:0 auto;padding:0 20px}
+
+  .navbar{
+    position:sticky;top:0;z-index:50;
+    background:rgba(255,255,255,.94);
+    backdrop-filter:blur(10px);
+    border-bottom:1px solid var(--khung);
+  }
+  .navbar .khung-ngoai{display:flex;align-items:center;justify-content:space-between;height:64px;gap:12px}
+  .logo{font-weight:800;font-size:1.2rem;display:flex;align-items:center;gap:8px}
+  .logo .dau{
+    width:34px;height:34px;border-radius:10px;
+    background:linear-gradient(135deg,var(--tuody),var(--hong));
+    color:#fff;display:grid;place-items:center;font-size:1rem;
+  }
+  .navbar nav{display:flex;gap:22px;font-size:.95rem;font-weight:600}
+  .navbar nav a:hover{color:var(--tuody)}
+  .btn{
+    display:inline-block;border:none;cursor:pointer;
+    padding:12px 22px;border-radius:12px;font-weight:700;font-size:.98rem;
+    transition:transform .15s ease, box-shadow .15s ease, opacity .15s ease;
+  }
+  .btn:hover:not(:disabled){transform:translateY(-1px)}
+  .btn:disabled{opacity:.6;cursor:not-allowed}
+  .btn-chinh{
+    background:linear-gradient(135deg,var(--tuody),var(--hong));
+    color:#fff;box-shadow:0 8px 20px rgba(46,108,246,.3);
+  }
+  .btn-vien{background:#fff;color:var(--tuody-dam);border:1.5px solid var(--tuody)}
+  .btn-nho{padding:8px 16px;font-size:.88rem}
+  @media (max-width:760px){.navbar nav{display:none}}
+
+  .hero{padding:64px 0 48px;position:relative;overflow:hidden}
+  .hero .khung-ngoai{
+    display:grid;grid-template-columns:1.1fr .9fr;gap:44px;align-items:center;
+  }
+  .nhan{display:inline-block;background:#e8f0fe;color:var(--tuody-dam);
+    padding:6px 14px;border-radius:999px;font-size:.85rem;font-weight:700;margin-bottom:16px}
+  .hero h1{font-size:clamp(1.9rem,4.2vw,3rem);line-height:1.18;font-weight:800}
+  .hero h1 .nhan-manh{
+    background:linear-gradient(135deg,var(--tuody),var(--hong));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+  }
+  .hero p.mo-ta{margin:16px 0 26px;color:var(--chu-mo);font-size:1.05rem;max-width:500px}
+  .hero .cac-cta{display:flex;gap:12px;flex-wrap:wrap}
+
+  .hop-chat-demo{
+    background:#fff;border:1px solid var(--khung);border-radius:20px;
+    box-shadow:0 20px 50px rgba(46,108,246,.14);overflow:hidden;
+  }
+  .dau-hop{
+    background:linear-gradient(135deg,var(--tuody),var(--hong));
+    color:#fff;padding:14px 18px;display:flex;align-items:center;gap:10px;
+  }
+  .chan-tron{width:36px;height:36px;border-radius:50%;background:rgba(255,255,255,.25);
+    display:grid;place-items:center;font-size:1.1rem}
+  .dau-hop b{display:block;font-size:.95rem}
+  .dau-hop small{opacity:.88;font-size:.75rem}
+  .than-hop{padding:18px;display:flex;flex-direction:column;gap:10px;min-height:250px;background:#fdfcff}
+  .tin-nhan{max-width:84%;padding:10px 14px;border-radius:16px;font-size:.9rem;white-space:pre-line;word-break:break-word}
+  .tin-khach{align-self:flex-end;background:var(--tuody);color:#fff;border-bottom-right-radius:4px}
+  .tin-bot{align-self:flex-start;background:#eef3fe;color:var(--chu-den);border-bottom-left-radius:4px}
+  @media (max-width:880px){
+    .hero .khung-ngoai{grid-template-columns:1fr}
+    .hop-chat-demo{max-width:460px;margin:0 auto;width:100%}
+  }
+
+  .khu-sp{padding:44px 0 36px}
+  .tieu-de-giua{text-align:center;margin-bottom:26px}
+  .tieu-de-giua h2{font-size:clamp(1.5rem,3vw,2.1rem);font-weight:800}
+  .tieu-de-giua p{color:var(--chu-mo);margin-top:6px}
+  .loi-sp{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:18px}
+  .the-sp{background:#fff;border:1px solid var(--khung);border-radius:18px;padding:18px;
+    display:flex;flex-direction:column;gap:8px;
+    transition:transform .15s ease, box-shadow .15s ease}
+  .the-sp:hover{transform:translateY(-3px);box-shadow:0 12px 28px rgba(46,108,246,.12)}
+  .the-sp .emoji{font-size:2.1rem;line-height:1}
+  .the-sp b{font-size:1.02rem}
+  .the-sp .mo-ta{color:var(--chu-mo);font-size:.86rem;flex:1}
+  .the-sp .gia b{color:var(--tuody-dam);font-size:1.15rem}
+  .the-sp .btn{margin-top:6px;width:100%}
+
+  .trang-thai-hop{
+    background:#fff;border:1px solid var(--khung);border-radius:16px;
+    padding:28px;text-align:center;color:var(--chu-mo);
+  }
+  .trang-thai-hop.loi{background:var(--do-nen);border-color:#fecaca;color:var(--do)}
+
+  footer{background:var(--chu-den);color:#c3cde0;padding:44px 0 26px;margin-top:24px}
+  footer .khung-ngoai{display:grid;grid-template-columns:2fr 1fr 1fr;gap:32px}
+  footer h4{color:#fff;margin-bottom:10px;font-size:1rem}
+  footer a:hover{color:#fff}
+  footer .duoi{border-top:1px solid #2b3a55;margin-top:28px;padding-top:18px;
+    text-align:center;font-size:.85rem}
+  @media (max-width:700px){footer .khung-ngoai{grid-template-columns:1fr}}
+
+  /* MODAL ĐẶT ĐƠN */
+  .phu-nen{
+    position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:90;
+    display:none;place-items:center;padding:16px;
+  }
+  .phu-nen.mo{display:grid}
+  .bang-don{
+    background:#fff;border-radius:20px;padding:24px 26px;width:100%;max-width:500px;
+    max-height:92vh;overflow:auto;position:relative;
+  }
+  .bang-don h3{margin-bottom:4px;font-size:1.25rem}
+  .bang-don .phu-de{color:var(--chu-mo);font-size:.88rem;margin-bottom:14px}
+  .bang-don label{display:block;font-size:.86rem;font-weight:700;margin:11px 0 5px}
+  .bang-don input,.bang-don textarea,.bang-don select{
+    width:100%;padding:10px 12px;border:1px solid var(--khung);border-radius:10px;
+    font:inherit;font-size:.94rem;background:#fff;
+  }
+  .bang-don input:focus,.bang-don textarea:focus,.bang-don select:focus{
+    outline:2px solid var(--tuody);border-color:transparent;
+  }
+  .tat{position:absolute;top:14px;right:14px;background:none;border:none;
+    font-size:1.3rem;cursor:pointer;color:var(--chu-mo);padding:4px 8px}
+
+  .ds-mon-chon{display:flex;flex-direction:column;gap:8px;margin-top:6px}
+  .dong-mon{display:grid;grid-template-columns:1fr 86px 34px;gap:8px;align-items:center}
+  .dong-mon .xoa-mon{
+    height:38px;border-radius:9px;border:1px solid #fecaca;background:var(--do-nen);
+    color:var(--do);cursor:pointer;font-weight:700;
+  }
+  .nut-them-mon{
+    margin-top:8px;background:#f8faff;border:1px dashed var(--tuody);color:var(--tuody-dam);
+    border-radius:10px;padding:7px 12px;font-size:.85rem;font-weight:700;cursor:pointer;width:100%;
+  }
+  .hop-tam-tinh{
+    margin-top:14px;background:var(--vang-nen);border:1px solid #fde68a;border-radius:12px;
+    padding:10px 14px;font-size:.88rem;color:var(--vang-chu);
+  }
+  .hop-tam-tinh b{font-size:1rem;color:var(--chu-den)}
+  .hop-loi-don{
+    display:none;margin-top:12px;background:var(--do-nen);border:1px solid #fecaca;
+    color:var(--do);border-radius:10px;padding:10px 12px;font-size:.88rem;
+  }
+  .hop-loi-don.hien{display:block}
+  .bang-don .nut-gui-don{width:100%;margin-top:16px}
+
+  .thong-bao-ok{text-align:center;padding:12px 0;display:none}
+  .bang-don.da-gui form{display:none}
+  .bang-don.da-gui .thong-bao-ok{display:block}
+  .ma-don-hop{
+    margin:12px 0;background:#eff6ff;border:1px dashed var(--tuody);border-radius:12px;
+    padding:12px;font-size:.92rem;color:var(--chu-den);
+  }
+
+  /* WIDGET CHAT */
+  .noi-chat{position:fixed;bottom:22px;right:22px;z-index:80}
+  .nut-chat{
+    width:60px;height:60px;border-radius:50%;border:none;cursor:pointer;
+    background:linear-gradient(135deg,var(--tuody),var(--hong));color:#fff;font-size:1.5rem;
+    box-shadow:0 10px 26px rgba(46,108,246,.45);
+  }
+  .cua-so-chat{
+    position:fixed;bottom:96px;right:22px;width:350px;max-width:calc(100vw - 32px);
+    height:460px;background:#fff;border:1px solid var(--khung);border-radius:20px;
+    box-shadow:0 24px 60px rgba(15,23,42,.25);display:none;flex-direction:column;
+    overflow:hidden;z-index:81;
+  }
+  .cua-so-chat.mo{display:flex}
+  .noi-tin{flex:1;padding:14px;display:flex;flex-direction:column;gap:8px;overflow-y:auto;background:#fdfcff}
+  .goi-y{display:flex;gap:6px;flex-wrap:wrap;padding:0 14px 8px;background:#fdfcff}
+  .goi-y button{
+    border:1px solid var(--tuody);color:var(--tuody-dam);background:#fff;
+    border-radius:999px;padding:5px 12px;font-size:.78rem;cursor:pointer;
+  }
+  .goi-y button:hover{background:#e8f0fe}
+  .o-nhap{display:flex;gap:8px;padding:12px;border-top:1px solid var(--khung)}
+  .o-nhap input{flex:1;border:1px solid var(--khung);border-radius:10px;padding:10px 12px;font:inherit;font-size:.9rem}
+  .o-nhap button{border:none;background:linear-gradient(135deg,var(--tuody),var(--hong));
+    color:#fff;border-radius:10px;width:44px;cursor:pointer;font-size:1rem}
+  .dang-go{font-size:.75rem;color:var(--chu-mo);padding:0 16px 4px;background:#fdfcff;height:18px}
+</style>
+</head>
+<body>
+
+<header class="navbar">
+  <div class="khung-ngoai">
+    <a class="logo" href="#"><span class="dau">🧁</span><span id="ten-shop">Cửa hàng của Mino</span></a>
+    <nav aria-label="Điều hướng chính">
+      <a href="#san-pham">🛍️ Sản phẩm</a>
+      <a href="caidat.html">⚙️ Cài đặt</a>
+      <a href="admin.html">📦 Quản lý đơn</a>
+      <a href="huong-dan.html">📘 Hướng dẫn</a>
+    </nav>
+    <button class="btn btn-chinh btn-nho" type="button" id="nut-mo-don-nav">Đặt hàng ngay</button>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="khung-ngoai">
+    <div>
+      <span class="nhan">🤖 Trợ lý trả lời theo kịch bản 24/7 · Đặt đơn COD</span>
+      <h1>Mua sắm tiện lợi, <span class="nhan-manh">báo giá niêm yết rõ ràng</span></h1>
+      <p class="mo-ta">
+        Xem danh sách sản phẩm đang mở bán, hỏi nhanh thông tin vận chuyển/đổi trả qua trợ lý tự động và gửi đơn COD trực tiếp về cửa hàng.
+      </p>
+      <div class="cac-cta">
+        <button class="btn btn-chinh" type="button" id="nut-mo-don-hero">🛒 Đặt đơn COD</button>
+        <a class="btn btn-vien" href="#san-pham">Xem sản phẩm</a>
+      </div>
+    </div>
+
+    <div class="hop-chat-demo" aria-hidden="true">
+      <div class="dau-hop">
+        <div class="chan-tron">🤖</div>
+        <div><b>Trợ lý <span class="ten-bot">Mino</span></b><small>Tư vấn theo bảng giá niêm yết</small></div>
+      </div>
+      <div class="than-hop" id="demo-chat"></div>
+    </div>
+  </div>
+</section>
+
+<section class="khu-sp" id="san-pham">
+  <div class="khung-ngoai">
+    <div class="tieu-de-giua">
+      <h2>🛍️ Sản phẩm đang bán</h2>
+      <p>Giá lấy trực tiếp từ hệ thống cửa hàng — phí vận chuyển được chủ shop xác nhận khi gọi chốt đơn.</p>
+    </div>
+    <div id="trang-thai-sp" class="trang-thai-hop">Đang tải danh sách sản phẩm…</div>
+    <div class="loi-sp" id="loi-sp" style="display:none"></div>
+  </div>
+</section>
+
+<footer>
+  <div class="khung-ngoai">
+    <div>
+      <h4><span id="ten-shop-2">Cửa hàng của Mino</span></h4>
+      <p>Đặt hàng trực tuyến — thanh toán khi nhận hàng (COD).</p>
+      <p style="margin-top:10px"><a href="huong-dan.html">📘 Hướng dẫn sử dụng hệ thống</a></p>
+    </div>
+    <div>
+      <h4>Liên hệ</h4>
+      <p>📞 <span id="sdt-footer">Đang cập nhật</span></p>
+      <p id="diachi-footer">Đang cập nhật địa chỉ</p>
+    </div>
+    <div>
+      <h4>Hỗ trợ</h4>
+      <p>Trợ lý từ khóa trực 24/7</p>
+      <p>Chủ shop gọi xác nhận từng đơn COD</p>
+    </div>
+  </div>
+  <div class="duoi">© 2026 <span id="ten-shop-3">Cửa hàng của Mino</span></div>
+</footer>
+
+<!-- MODAL ĐẶT ĐƠN COD -->
+<div class="phu-nen" id="phu-nen-don" role="dialog" aria-modal="true" aria-labelledby="tieu-de-don">
+  <div class="bang-don" id="bang-don">
+    <button class="tat" type="button" id="nut-dong-don" aria-label="Đóng cửa sổ đặt hàng">✕</button>
+    <h3 id="tieu-de-don">🧾 Đặt đơn COD</h3>
+    <p class="phu-de">Điền thông tin nhận hàng. Đơn chỉ được ghi nhận sau khi máy chủ trả về mã đơn.</p>
+
+    <form id="form-don" novalidate>
+      <label>Sản phẩm &amp; số lượng *</label>
+      <div class="ds-mon-chon" id="ds-mon-chon"></div>
+      <button type="button" class="nut-them-mon" id="nut-them-mon">＋ Chọn thêm sản phẩm khác</button>
+
+      <label for="inp-ten">Họ tên người nhận *</label>
+      <input id="inp-ten" required name="ten" maxlength="120" autocomplete="name" placeholder="Nguyễn Văn A">
+
+      <label for="inp-sdt">Số điện thoại *</label>
+      <input id="inp-sdt" required name="sdt" type="tel" maxlength="25" autocomplete="tel" placeholder="0901 234 567">
+
+      <label for="inp-diachi">Địa chỉ nhận hàng *</label>
+      <input id="inp-diachi" required name="diachi" maxlength="500" autocomplete="street-address" placeholder="Số nhà, đường, phường/xã, quận/huyện, tỉnh/thành">
+
+      <label for="inp-ghichu">Ghi chú cho shop (tùy chọn)</label>
+      <textarea id="inp-ghichu" name="ghichu" rows="2" maxlength="1000" placeholder="Ví dụ: giao giờ hành chính…"></textarea>
+
+      <div class="hop-tam-tinh">
+        <div>Tạm tính tiền hàng: <b id="tam-tinh-don">0đ</b></div>
+        <div style="margin-top:3px">⚠️ Tạm tính <b>chưa bao gồm phí vận chuyển</b>. Chủ shop sẽ gọi xác nhận phí ship và tổng thanh toán cuối cùng.</div>
+      </div>
+
+      <div class="hop-loi-don" id="hop-loi-don" role="alert"></div>
+
+      <button class="btn btn-chinh nut-gui-don" id="nut-gui-don" type="submit">✅ Gửi đơn đặt hàng</button>
+    </form>
+
+    <div class="thong-bao-ok" id="thong-bao-ok">
+      <div style="font-size:2.8rem">🎉</div>
+      <h3>Đã ghi nhận đơn hàng!</h3>
+      <div class="ma-don-hop">
+        <div>Mã đơn của bạn: <b id="kq-ma-don">—</b></div>
+        <div>Tạm tính tiền hàng (chưa gồm phí ship): <b id="kq-tam-tinh">—</b></div>
+      </div>
+      <p style="color:var(--chu-mo);font-size:.9rem">
+        Số tiền trên <b>chưa bao gồm phí vận chuyển</b>. Chủ shop sẽ liên hệ theo số điện thoại của bạn để báo phí ship và xác nhận tổng tiền cuối cùng.
+      </p>
+      <button class="btn btn-vien btn-nho" style="margin-top:14px" type="button" id="nut-dong-sau-gui">Đóng</button>
+    </div>
+  </div>
+</div>
+
+<!-- CHAT WIDGET -->
+<div class="cua-so-chat" id="cua-so-chat" role="region" aria-label="Hộp chat trợ lý tự động">
+  <div class="dau-hop">
+    <div class="chan-tron">🤖</div>
+    <div><b>Trợ lý <span class="ten-bot">Mino</span></b><small>Trả lời tự động theo từ khóa</small></div>
+  </div>
+  <div class="noi-tin" id="noi-tin-chat"></div>
+  <div class="goi-y" id="goi-y"></div>
+  <div class="dang-go" id="dang-go"></div>
+  <div class="o-nhap">
+    <input id="o-nhap-chat" aria-label="Nhập câu hỏi cho trợ lý" placeholder="Nhắn tên món hoặc từ khóa…">
+    <button type="button" id="nut-gui-tin" aria-label="Gửi tin nhắn">➤</button>
+  </div>
+</div>
+<div class="noi-chat">
+  <button class="nut-chat" type="button" id="nut-chat" aria-label="Mở hộp chat">💬</button>
+</div>
+
+<script>
+(() => {
+  const state = {
+    shop: {
+      name: "Cửa hàng của Mino",
+      publicPhone: null,
+      publicAddress: null,
+      botName: "Mino",
+      fallbackReply: "Dạ câu này em nhờ chủ shop tư vấn chi tiết hơn ạ. Anh/chị bấm “Đặt đơn” để chủ shop gọi lại hỗ trợ nha!",
+      currency: "VND"
+    },
+    products: [],
+    botRules: [],
+    idempotencyKey: null
+  };
+
+  function formatVnd(vndStrOrNum) {
+    try {
+      return BigInt(vndStrOrNum).toLocaleString("vi-VN") + "đ";
+    } catch {
+      return "0đ";
+    }
+  }
+
+  function normalizeText(str) {
+    return String(str || "").normalize("NFC").trim().toLowerCase().replace(/\s+/g, " ");
+  }
+
+  function generateUuid() {
+    if (window.crypto && typeof window.crypto.randomUUID === "function") {
+      return window.crypto.randomUUID();
+    }
+    const bytes = new Uint8Array(16);
+    window.crypto.getRandomValues(bytes);
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const hex = [...bytes].map(b => b.toString(16).padStart(2, "0")).join("");
+    return `${hex.slice(0,8)}-${hex.slice(8,12)}-${hex.slice(12,16)}-${hex.slice(16,20)}-${hex.slice(20)}`;
+  }
+
+  function invalidateOrderKey() {
+    state.idempotencyKey = null;
+  }
+
+  function updateShopDom() {
+    ["ten-shop", "ten-shop-2", "ten-shop-3"].forEach((id) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = state.shop.name;
+    });
+    document.querySelectorAll(".ten-bot").forEach((el) => {
+      el.textContent = state.shop.botName;
+    });
+    document.getElementById("sdt-footer").textContent =
+      state.shop.publicPhone || "Liên hệ khi xác nhận đơn";
+    document.getElementById("diachi-footer").textContent =
+      state.shop.publicAddress || "Giao hàng toàn quốc";
+    document.title = `${state.shop.name} — Đặt hàng COD nhanh gọn`;
+  }
+
+  function renderProducts() {
+    const statusBox = document.getElementById("trang-thai-sp");
+    const grid = document.getElementById("loi-sp");
+    grid.replaceChildren();
+
+    if (state.products.length === 0) {
+      statusBox.className = "trang-thai-hop";
+      statusBox.textContent = "Hiện cửa hàng chưa có sản phẩm nào đang mở bán.";
+      statusBox.style.display = "block";
+      grid.style.display = "none";
+      return;
+    }
+
+    statusBox.style.display = "none";
+    grid.style.display = "grid";
+
+    state.products.forEach((sp) => {
+      const card = document.createElement("div");
+      card.className = "the-sp";
+
+      const emojiEl = document.createElement("div");
+      emojiEl.className = "emoji";
+      emojiEl.textContent = sp.emoji || "🛍️";
+
+      const nameEl = document.createElement("b");
+      nameEl.textContent = sp.name;
+
+      const descEl = document.createElement("div");
+      descEl.className = "mo-ta";
+      descEl.textContent = sp.description || "";
+
+      const priceWrap = document.createElement("div");
+      priceWrap.className = "gia";
+      const priceEl = document.createElement("b");
+      priceEl.textContent = formatVnd(sp.priceVnd);
+      priceWrap.appendChild(priceEl);
+
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "btn btn-chinh btn-nho";
+      btn.textContent = "🛒 Đặt đơn";
+      btn.addEventListener("click", () => openOrderModal(sp.id));
+
+      card.append(emojiEl, nameEl, descEl, priceWrap, btn);
+      grid.appendChild(card);
+    });
+  }
+
+  async function loadAllPublicProducts() {
+    const all = [];
+    let cursor = null;
+    do {
+      const qs = new URLSearchParams({ limit: "100" });
+      if (cursor) qs.set("cursor", cursor);
+      const res = await fetch(`/api/v1/public/products?${qs.toString()}`);
+      if (!res.ok) throw new Error("Failed to load products");
+      const body = await res.json();
+      all.push(...(body.data || []));
+      cursor = body.nextCursor || null;
+    } while (cursor);
+    return all;
+  }
+
+  async function initStorefront() {
+    const statusBox = document.getElementById("trang-thai-sp");
+    statusBox.className = "trang-thai-hop";
+    statusBox.textContent = "Đang tải dữ liệu cửa hàng…";
+    statusBox.style.display = "block";
+
+    try {
+      const [shopRes, products, rulesRes] = await Promise.all([
+        fetch("/api/v1/public/shop"),
+        loadAllPublicProducts(),
+        fetch("/api/v1/public/bot-rules")
+      ]);
+
+      if (!shopRes.ok || !rulesRes.ok) {
+        throw new Error("API unavailable");
+      }
+
+      const shopBody = await shopRes.json();
+      const rulesBody = await rulesRes.json();
+
+      state.shop = shopBody.data;
+      state.products = products;
+      state.botRules = rulesBody.data || [];
+
+      updateShopDom();
+      renderProducts();
+    } catch {
+      statusBox.className = "trang-thai-hop loi";
+      statusBox.replaceChildren();
+      const msg = document.createElement("div");
+      msg.textContent = "Không thể tải dữ liệu cửa hàng. Vui lòng kiểm tra kết nối và thử lại.";
+      const retryBtn = document.createElement("button");
+      retryBtn.type = "button";
+      retryBtn.className = "btn btn-vien btn-nho";
+      retryBtn.style.marginTop = "12px";
+      retryBtn.textContent = "Thử tải lại";
+      retryBtn.addEventListener("click", initStorefront);
+      statusBox.append(msg, retryBtn);
+    }
+  }
+
+  /* ===== HERO DEMO CHAT (safe DOM creation, truthful wording) ===== */
+  const demoSteps = [
+    { role: "khach", text: "Shop báo giá giúp mình Combo quà tặng với ạ?" },
+    { role: "bot", text: "Dạ món 🎁 Combo quà tặng đang niêm yết giá 399.000đ (Nến + trà + thiệp, gói hộp sẵn)." },
+    { role: "khach", text: "Mình đặt 1 combo giao Quận 7 nhé!" },
+    { role: "bot", text: "Dạ anh/chị bấm “Đặt đơn COD” để nhận mã đơn ngay. Chủ shop sẽ gọi xác nhận tình trạng hàng và phí vận chuyển ạ!" }
+  ];
+  const demoBox = document.getElementById("demo-chat");
+  let demoIdx = 0;
+  function runHeroDemo() {
+    if (demoIdx >= demoSteps.length) {
+      setTimeout(() => {
+        demoBox.replaceChildren();
+        demoIdx = 0;
+        runHeroDemo();
+      }, 5500);
+      return;
+    }
+    const step = demoSteps[demoIdx++];
+    const bubble = document.createElement("div");
+    bubble.className = `tin-nhan ${step.role === "khach" ? "tin-khach" : "tin-bot"}`;
+    bubble.textContent = step.text;
+    demoBox.appendChild(bubble);
+    setTimeout(runHeroDemo, 1800);
+  }
+  runHeroDemo();
+
+  /* ===== ORDER MODAL ===== */
+  const modalOverlay = document.getElementById("phu-nen-don");
+  const modalCard = document.getElementById("bang-don");
+  const itemRowsContainer = document.getElementById("ds-mon-chon");
+  const errorBox = document.getElementById("hop-loi-don");
+  const orderForm = document.getElementById("form-don");
+
+  function showOrderError(msg) {
+    errorBox.textContent = msg;
+    errorBox.classList.add("hien");
+  }
+
+  function clearOrderError() {
+    errorBox.textContent = "";
+    errorBox.classList.remove("hien");
+  }
+
+  function recalculateSubtotalPreview() {
+    let total = 0n;
+    const rows = itemRowsContainer.querySelectorAll(".dong-mon");
+    rows.forEach((row) => {
+      const productId = row.querySelector("select").value;
+      const qty = Number(row.querySelector("input").value);
+      const prod = state.products.find((p) => p.id === productId);
+      if (prod && Number.isInteger(qty) && qty > 0) {
+        total += BigInt(prod.priceVnd) * BigInt(qty);
+      }
+    });
+    document.getElementById("tam-tinh-don").textContent = formatVnd(total);
+  }
+
+  function addOrderItemRow(selectedProductId, quantity = 1) {
+    if (state.products.length === 0) return;
+    const row = document.createElement("div");
+    row.className = "dong-mon";
+
+    const select = document.createElement("select");
+    select.setAttribute("aria-label", "Chọn sản phẩm");
+    state.products.forEach((p) => {
+      const opt = document.createElement("option");
+      opt.value = p.id;
+      opt.textContent = `${p.emoji ? p.emoji + " " : ""}${p.name} — ${formatVnd(p.priceVnd)}`;
+      if (selectedProductId && p.id === selectedProductId) {
+        opt.selected = true;
+      }
+      select.appendChild(opt);
+    });
+
+    const qtyInput = document.createElement("input");
+    qtyInput.type = "number";
+    qtyInput.min = "1";
+    qtyInput.max = "1000";
+    qtyInput.value = String(quantity);
+    qtyInput.setAttribute("aria-label", "Số lượng");
+
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.className = "xoa-mon";
+    removeBtn.title = "Bỏ sản phẩm này";
+    removeBtn.textContent = "✕";
+    removeBtn.addEventListener("click", () => {
+      if (itemRowsContainer.children.length <= 1) return;
+      row.remove();
+      invalidateOrderKey();
+      recalculateSubtotalPreview();
+    });
+
+    select.addEventListener("change", () => {
+      invalidateOrderKey();
+      recalculateSubtotalPreview();
+    });
+    qtyInput.addEventListener("input", () => {
+      invalidateOrderKey();
+      recalculateSubtotalPreview();
+    });
+
+    row.append(select, qtyInput, removeBtn);
+    itemRowsContainer.appendChild(row);
+    invalidateOrderKey();
+    recalculateSubtotalPreview();
+  }
+
+  function openOrderModal(preselectedProductId) {
+    if (state.products.length === 0) {
+      alert("Hiện chưa có sản phẩm đang bán để đặt đơn.");
+      return;
+    }
+    clearOrderError();
+    modalCard.classList.remove("da-gui");
+    itemRowsContainer.replaceChildren();
+    addOrderItemRow(preselectedProductId || state.products[0].id, 1);
+    modalOverlay.classList.add("mo");
+    document.getElementById("inp-ten").focus();
+  }
+
+  function closeOrderModal() {
+    modalOverlay.classList.remove("mo");
+  }
+
+  ["inp-ten", "inp-sdt", "inp-diachi", "inp-ghichu"].forEach((id) => {
+    document.getElementById(id).addEventListener("input", invalidateOrderKey);
+  });
+
+  document.getElementById("nut-them-mon").addEventListener("click", () => {
+    if (itemRowsContainer.children.length >= 20) {
+      showOrderError("Mỗi đơn tối đa 20 dòng sản phẩm.");
+      return;
+    }
+    const chosenIds = new Set(
+      [...itemRowsContainer.querySelectorAll("select")].map((s) => s.value)
+    );
+    const nextProd = state.products.find((p) => !chosenIds.has(p.id)) || state.products[0];
+    addOrderItemRow(nextProd.id, 1);
+  });
+
+  document.getElementById("nut-mo-don-nav").addEventListener("click", () => openOrderModal());
+  document.getElementById("nut-mo-don-hero").addEventListener("click", () => openOrderModal());
+  document.getElementById("nut-dong-don").addEventListener("click", closeOrderModal);
+  document.getElementById("nut-dong-sau-gui").addEventListener("click", closeOrderModal);
+  modalOverlay.addEventListener("click", (e) => {
+    if (e.target === modalOverlay) closeOrderModal();
+  });
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" && modalOverlay.classList.contains("mo")) {
+      closeOrderModal();
+    }
+  });
+
+  orderForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    clearOrderError();
+
+    const rows = [...itemRowsContainer.querySelectorAll(".dong-mon")];
+    const items = [];
+    const seen = new Set();
+    for (const row of rows) {
+      const productId = row.querySelector("select").value;
+      const quantity = Number(row.querySelector("input").value);
+      if (!Number.isInteger(quantity) || quantity < 1 || quantity > 1000) {
+        showOrderError("Số lượng mỗi sản phẩm phải là số nguyên từ 1 đến 1000.");
+        return;
+      }
+      if (seen.has(productId)) {
+        showOrderError("Bạn đã chọn trùng một sản phẩm trên hai dòng. Hãy gộp số lượng vào cùng một dòng.");
+        return;
+      }
+      seen.add(productId);
+      items.push({ productId, quantity });
+    }
+
+    const name = document.getElementById("inp-ten").value.trim();
+    const phone = document.getElementById("inp-sdt").value.trim();
+    const address = document.getElementById("inp-diachi").value.trim();
+    const noteRaw = document.getElementById("inp-ghichu").value.trim();
+
+    if (!name || !phone || !address) {
+      showOrderError("Vui lòng điền đầy đủ họ tên, số điện thoại và địa chỉ nhận hàng.");
+      return;
+    }
+
+    if (!state.idempotencyKey) {
+      state.idempotencyKey = generateUuid();
+    }
+
+    const submitBtn = document.getElementById("nut-gui-don");
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Đang gửi đơn lên hệ thống…";
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+      const res = await fetch("/api/v1/public/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": state.idempotencyKey
+        },
+        body: JSON.stringify({
+          recipient: { name, phone, address },
+          items,
+          ...(noteRaw ? { note: noteRaw } : {})
+        }),
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+
+      const payload = await res.json().catch(() => null);
+      if (!res.ok) {
+        if (res.status === 400 || res.status === 409) {
+          invalidateOrderKey();
+        }
+        const errMsg =
+          payload?.error?.message ||
+          "Chưa thể ghi nhận đơn hàng. Vui lòng kiểm tra lại thông tin và thử lại.";
+        showOrderError(errMsg);
+        return;
+      }
+
+      const orderData = payload.data;
+      document.getElementById("kq-ma-don").textContent = orderData.orderNo;
+      document.getElementById("kq-tam-tinh").textContent = formatVnd(orderData.subtotalVnd);
+
+      orderForm.reset();
+      invalidateOrderKey();
+      modalCard.classList.add("da-gui");
+    } catch {
+      // Keep form contents AND idempotencyKey intact so retrying does not duplicate the order
+      showOrderError(
+        "Mạng chập chờn hoặc phản hồi quá thời gian. Dữ liệu đã nhập vẫn được giữ nguyên — bạn có thể bấm Gửi đơn để thử lại an toàn (không tạo đơn trùng)."
+      );
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "✅ Gửi đơn đặt hàng";
+    }
+  });
+
+  /* ===== BOT WIDGET (pure textContent rendering, server rules, no stock fabrication) ===== */
+  const chatWindow = document.getElementById("cua-so-chat");
+  const chatMessages = document.getElementById("noi-tin-chat");
+  const chatInput = document.getElementById("o-nhap-chat");
+  const typingIndicator = document.getElementById("dang-go");
+  let chatOpenedOnce = false;
+
+  function appendChatMessage(role, text) {
+    const bubble = document.createElement("div");
+    bubble.className = `tin-nhan ${role === "khach" ? "tin-khach" : "tin-bot"}`;
+    bubble.textContent = text;
+    chatMessages.appendChild(bubble);
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+  }
+
+  function computeBotReply(question) {
+    const normalizedMsg = normalizeText(question);
+    if (!normalizedMsg) return state.shop.fallbackReply;
+
+    // 1) Product match (reports listed price; never claims stock availability)
+    let matchedProduct = state.products.find((p) => {
+      const pNorm = normalizeText(p.name);
+      return pNorm.length > 0 && normalizedMsg.includes(pNorm);
+    });
+
+    if (!matchedProduct) {
+      const genericWords = new Set([
+        "set","hop","hộp","bo","bộ","qua","quà","tang","tặng","hang","hàng","mon","món","cua","của","cho","trong","nha","nhà"
+      ]);
+      matchedProduct = state.products.find((p) => {
+        const tokens = normalizeText(p.name)
+          .split(" ")
+          .filter((t) => t.length >= 4 && !genericWords.has(t));
+        return tokens.length > 0 && tokens.some((t) => normalizedMsg.includes(t));
+      });
+    }
+
+    if (matchedProduct) {
+      const emojiPart = matchedProduct.emoji ? `${matchedProduct.emoji} ` : "";
+      const descPart = matchedProduct.description ? ` — ${matchedProduct.description}` : "";
+      return `Dạ món ${emojiPart}${matchedProduct.name} đang được niêm yết với giá ${formatVnd(matchedProduct.priceVnd)}${descPart} Anh/chị bấm “Đặt đơn” để chủ shop liên hệ xác nhận tình trạng hàng và phí vận chuyển nha! 🧾`;
+    }
+
+    // 2) Keyword rules ordered by server priority
+    for (const rule of state.botRules) {
+      const hit = (rule.keywords || []).some((kw) => {
+        const kNorm = normalizeText(kw);
+        return kNorm.length > 0 && normalizedMsg.includes(kNorm);
+      });
+      if (hit) return rule.answer;
+    }
+
+    return state.shop.fallbackReply;
+  }
+
+  function renderSuggestions() {
+    const box = document.getElementById("goi-y");
+    box.replaceChildren();
+    ["Xem giá", "Đặt hàng", "Ship thế nào?", "Đổi trả ra sao?"].forEach((label) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = label;
+      btn.addEventListener("click", () => {
+        chatInput.value = label;
+        sendCustomerMessage();
+      });
+      box.appendChild(btn);
+    });
+  }
+
+  function toggleChat() {
+    const isOpen = chatWindow.classList.toggle("mo");
+    const btn = document.getElementById("nut-chat");
+    btn.textContent = isOpen ? "✕" : "💬";
+    btn.setAttribute("aria-label", isOpen ? "Đóng hộp chat" : "Mở hộp chat");
+    if (isOpen && !chatOpenedOnce) {
+      chatOpenedOnce = true;
+      if (chatMessages.children.length === 0) {
+        appendChatMessage(
+          "bot",
+          `Dạ em chào anh/chị! 🤖 Em là ${state.shop.botName}, trợ lý của ${state.shop.name}. Anh/chị nhắn tên món để xem giá niêm yết, hoặc hỏi về cách đặt hàng, vận chuyển nha!`
+        );
+      }
+      renderSuggestions();
+    }
+    if (isOpen) chatInput.focus();
+  }
+
+  function sendCustomerMessage() {
+    const text = chatInput.value.trim();
+    if (!text) return;
+    chatInput.value = "";
+    appendChatMessage("khach", text);
+    const reply = computeBotReply(text);
+    typingIndicator.textContent = `${state.shop.botName} đang trả lời…`;
+    setTimeout(() => {
+      typingIndicator.textContent = "";
+      appendChatMessage("bot", reply);
+    }, 350);
+  }
+
+  document.getElementById("nut-chat").addEventListener("click", toggleChat);
+  document.getElementById("nut-gui-tin").addEventListener("click", sendCustomerMessage);
+  chatInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") sendCustomerMessage();
+  });
+
+  void initStorefront();
+})();
+</script>
+</body>
+</html>
