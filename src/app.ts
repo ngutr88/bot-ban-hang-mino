@@ -19,6 +19,10 @@ import { registerOrderRoutes } from "./modules/orders/orders.routes.js";
 import { registerHealthRoutes } from "./modules/health/health.routes.js";
 import { registerPublicChatRoutes } from "./modules/chat/chat-public.routes.js";
 import { registerAdminChatRoutes } from "./modules/chat/chat-admin.routes.js";
+import { createMessengerAdapter } from "./modules/integrations/messenger-adapter.js";
+import { registerMessengerWebhookRoutes } from "./modules/integrations/messenger-webhook.routes.js";
+import { registerAdminIntegrationRoutes } from "./modules/integrations/integrations-admin.routes.js";
+import { processDueOutboundMessages } from "./modules/integrations/outbox.service.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = path.resolve(__dirname, "..", "public");
@@ -27,6 +31,8 @@ export interface BuildAppOptions {
   prisma: PrismaClient;
   config: AppConfig;
   loggerStream?: Writable;
+  fetchFn?: typeof fetch;
+  enableOutboxWorker?: boolean;
 }
 
 function mapValidationFields(err: FastifyError): ErrorFieldDetail[] {
@@ -62,7 +68,7 @@ function mapValidationFields(err: FastifyError): ErrorFieldDetail[] {
 }
 
 export async function buildApp(options: BuildAppOptions): Promise<FastifyInstance> {
-  const { prisma, config, loggerStream } = options;
+  const { prisma, config, loggerStream, fetchFn, enableOutboxWorker = false } = options;
 
   const app = Fastify({
     trustProxy: config.trustProxy,
@@ -71,6 +77,16 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
     logger: {
       level: config.logLevel,
       ...(loggerStream ? { stream: loggerStream } : {}),
+      serializers: {
+        req(request) {
+          const cleanPath = request.url.split("?")[0] ?? request.url;
+          return {
+            method: request.method,
+            url: cleanPath,
+            remoteAddress: request.ip
+          };
+        }
+      },
       redact: {
         paths: [
           "req.headers.cookie",
@@ -179,6 +195,7 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
   });
 
   const guards = createAuthGuards(prisma, config);
+  const messengerAdapter = createMessengerAdapter(config, fetchFn);
 
   await registerHealthRoutes(app, { prisma });
   await registerAuthRoutes(app, { prisma, config, guards });
@@ -187,7 +204,33 @@ export async function buildApp(options: BuildAppOptions): Promise<FastifyInstanc
   await registerBotRuleRoutes(app, { prisma, guards });
   await registerOrderRoutes(app, { prisma, config, guards });
   await registerPublicChatRoutes(app, { prisma, config });
-  await registerAdminChatRoutes(app, { prisma, guards });
+  await registerAdminChatRoutes(app, { prisma, guards, messengerAdapter });
+  await registerMessengerWebhookRoutes(app, { prisma, config, messengerAdapter });
+  await registerAdminIntegrationRoutes(app, {
+    prisma,
+    config,
+    guards,
+    messengerAdapter
+  });
+
+  if (enableOutboxWorker) {
+    const outboxTimer = setInterval(() => {
+      void processDueOutboundMessages(prisma, messengerAdapter).catch((err: unknown) => {
+        app.log.error(
+          {
+            event: "outbox_worker_error",
+            errorName: err instanceof Error ? err.name : "OutboxError"
+          },
+          "Outbox background retry failed"
+        );
+      });
+    }, 15_000);
+    outboxTimer.unref();
+
+    app.addHook("onClose", async () => {
+      clearInterval(outboxTimer);
+    });
+  }
 
   await app.register(fastifyStatic, {
     root: PUBLIC_DIR,

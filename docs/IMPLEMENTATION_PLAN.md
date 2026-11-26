@@ -123,13 +123,13 @@ M0 Chốt quyết định → M1 Nền tảng + đơn COD dùng chung → Releas
 
 **Cổng M2:** hai trình duyệt khác nhau trao đổi được trong cùng phiên; visitor A không thể truy cập session B; trả lời/ghi chú phân biệt đúng.
 
-## M3 — Một kênh ngoài
+## M3 — Một kênh ngoài (Facebook Messenger)
 
-- [ ] Trước tiên chọn đúng một kênh dựa trên khách hàng thực tế, không tích hợp đồng thời cả hai.
-- [ ] Đọc tài liệu nhà cung cấp hiện hành; rà soát quyền app, điều kiện xét duyệt, giới hạn nhắn tin và chi phí.
-- [ ] Thêm adapter riêng, webhook verify challenge/signature, idempotency event, retry/outbox và log không lộ secret.
-- [ ] Lưu mapping external account/user ID tới shop/session; quản lý token trong secret manager.
-- [ ] Thử app/test account và xử lý revoke token/webhook lỗi trước production.
+- [x] Trước tiên chọn đúng một kênh dựa trên khách hàng thực tế, không tích hợp đồng thời cả hai (đã chọn Facebook Messenger).
+- [x] Đọc tài liệu nhà cung cấp hiện hành; rà soát quyền app, điều kiện xét duyệt, giới hạn nhắn tin và chi phí.
+- [x] Thêm adapter riêng (`messenger-adapter.ts`), webhook verify challenge/signature (`X-Hub-Signature-256` trên raw body), idempotency event (`webhook_events`), retry/outbox (`outbound_messages`) và log không lộ secret.
+- [x] Lưu mapping external account/user ID tới shop/session (`channel_integrations` + `external_user_id`); quản lý token trong biến môi trường/secret manager.
+- [x] Thử mock/test account và xử lý revoke token (`TOKEN_INVALID_OR_REVOKED`) / webhook lỗi / ngắt kết nối trước production.
 
 **Cổng M3:** webhook lặp không tạo duplicate; signature sai bị từ chối; outbound failure có thể retry/đối soát; shop có thể ngắt integration.
 

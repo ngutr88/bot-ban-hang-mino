@@ -143,6 +143,12 @@ Invalid transition returns 409; successful update and `order_events` insert happ
 - `GET /admin/conversations`, `GET /admin/conversations/{id}`, `GET /admin/conversations/{id}/messages`.
 - `POST /admin/conversations/{id}/messages` (trả lời khách + tự động chuyển `handlingMode = "human"`), `POST /admin/conversations/{id}/notes` (ghi chú nội bộ lưu tách bảng `chat_notes`), `PATCH /admin/conversations/{id}` (cập nhật trạng thái, bật/tắt bot, thông tin khách, đánh dấu đã đọc).
 
+## M3 endpoints — Facebook Messenger Integration (`feat/m3-messenger-channel`)
+
+- `GET /webhooks/messenger` (xác minh `hub.verify_token` & trả `hub.challenge`), `POST /webhooks/messenger` (xác minh chữ ký `X-Hub-Signature-256` trên raw body, xử lý idempotent qua `webhook_events`).
+- `GET /admin/integrations`, `PUT /admin/integrations/messenger`, `POST /admin/integrations/messenger/disconnect`.
+- `GET /admin/outbound-messages`, `POST /admin/outbound-messages/retry` (đối soát & gửi lại tin lỗi từ hàng đợi outbox).
+
 ## Contract change rule
 
 Update this document and route validation schemas in the same change. Treat removing/renaming fields, changing money representation, changing status values or weakening auth as breaking changes; introduce a new API version or migration plan. Before release, automated contract checks should verify examples/status codes against the running API.

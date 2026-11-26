@@ -225,12 +225,12 @@
     <div class="mode-switch" role="tablist" aria-label="Chế độ quản trị">
       <button type="button" id="tab-mode-orders" class="active" role="tab" aria-selected="true">📦 Đơn hàng COD</button>
       <button type="button" id="tab-mode-inbox" role="tab" aria-selected="false">
-        💬 Hộp thư Chat (Web)
+        💬 Hộp thư Chat (Web &amp; Messenger)
         <span id="inbox-unread-badge" class="unread-pill" style="display:none">0</span>
       </button>
     </div>
     <div style="display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--chu-mo)">
-      <span>Kênh ngoài (Messenger / Zalo OA): dự kiến M3</span>
+      <span>Kênh hỗ trợ: Website Chat + Facebook Messenger</span>
       <button type="button" class="btn btn-vien" id="btn-refresh">↻ Làm mới</button>
     </div>
   </div>
@@ -847,7 +847,15 @@
   }
 
   function convDisplayName(c) {
-    return c.visitorName || `Khách web #${c.id.slice(0, 6)}`;
+    if (c.visitorName) return c.visitorName;
+    if (c.channel === "messenger") {
+      return `Khách Messenger #${(c.externalUserId || c.id).slice(-4)}`;
+    }
+    return `Khách web #${c.id.slice(0, 6)}`;
+  }
+
+  function convChannelBadgeText(c) {
+    return c.channel === "messenger" ? "💬 Messenger" : "🌐 Web";
   }
 
   function renderConvList() {
@@ -898,7 +906,7 @@
         const footRow = document.createElement("div");
         footRow.className = "row-meta";
         const modeSpan = document.createElement("span");
-        modeSpan.textContent = c.handlingMode === "human" ? "👤 Chủ shop phụ trách" : "🤖 Bot tự động";
+        modeSpan.textContent = `${convChannelBadgeText(c)} · ${c.handlingMode === "human" ? "👤 Chủ shop" : "🤖 Bot"}`;
         const timeSpan = document.createElement("span");
         timeSpan.textContent = formatVnDateTime(c.lastMessageAt);
         footRow.append(modeSpan, timeSpan);
@@ -958,7 +966,15 @@
         : m.senderType === "admin"
         ? `👑 Chủ shop (${m.actorAdmin?.email || "admin"})`
         : "🤖 Bot Mino";
-    meta.textContent = `${whoLabel} · ${formatVnDateTime(m.createdAt)}`;
+    let deliverySuffix = "";
+    if (m.senderType !== "customer" && m.deliveryStatus) {
+      if (m.deliveryStatus === "sent") deliverySuffix = " · ✓ Đã gửi";
+      else if (m.deliveryStatus === "pending") deliverySuffix = " · ⏳ Đang gửi";
+      else if (m.deliveryStatus === "failed") {
+        deliverySuffix = ` · ⚠️ Lỗi gửi (${m.deliveryErrorCode || "FAILED"})`;
+      }
+    }
+    meta.textContent = `${whoLabel} · ${formatVnDateTime(m.createdAt)}${deliverySuffix}`;
 
     wrap.append(bubble, meta);
     box.appendChild(wrap);
@@ -981,10 +997,14 @@
     stPill.className = `badge st-${session.status}`;
     stPill.textContent = CONV_STATUS_LABELS[session.status] || session.status;
 
+    const chPill = document.createElement("span");
+    chPill.className = "badge st-open";
+    chPill.textContent = convChannelBadgeText(session);
+
     const modePill = document.createElement("span");
     modePill.className = `badge ${session.handlingMode === "human" ? "mode-human" : "mode-bot"}`;
     modePill.textContent = session.handlingMode === "human" ? "👤 Chủ shop tiếp quản" : "🤖 Bot đang trực";
-    sub.append(stPill, modePill);
+    sub.append(chPill, stPill, modePill);
     left.append(title, sub);
 
     const actions = document.createElement("div");

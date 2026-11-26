@@ -10,7 +10,7 @@ async function start(): Promise<void> {
     }
   });
 
-  const app = await buildApp({ prisma, config });
+  const app = await buildApp({ prisma, config, enableOutboxWorker: true });
 
   const shutdown = async (signal: string) => {
     app.log.info({ signal }, "Shutting down server gracefully");

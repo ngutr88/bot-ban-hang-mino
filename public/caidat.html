@@ -227,21 +227,58 @@
 
   <!-- 4. KÊNH NGOÀI -->
   <section class="card">
-    <h2><span class="so">4</span>Kênh bán hàng &amp; tích hợp</h2>
-    <p class="goi-y">Trạng thái hỗ trợ thực tế trong phiên bản M2 hiện tại:</p>
+    <h2><span class="so">4</span>Kênh bán hàng &amp; tích hợp (M3)</h2>
+    <p class="goi-y">Cấu hình kết nối kênh nhắn tin. Các khóa bí mật (`MESSENGER_VERIFY_TOKEN`, `MESSENGER_APP_SECRET`, `MESSENGER_PAGE_ACCESS_TOKEN`) chỉ lưu ở biến môi trường máy chủ, không bao giờ nhập hoặc hiển thị trên trình duyệt.</p>
+
     <div class="kenh">
       <div>
         <b>🌐 Website bán hàng, Đặt đơn COD &amp; Hộp thư Web Chat</b>
-        <div style="font-size:.86rem;color:var(--mo)">Đơn COD và hội thoại khách trên website đều lưu trên PostgreSQL; chủ shop tiếp quản tại trang Quản lý đơn &amp; Chat.</div>
+        <div style="font-size:.86rem;color:var(--mo)">Đơn COD và hội thoại khách trên website hoạt động trực tiếp trên PostgreSQL.</div>
       </div>
-      <span class="trang-thai dang">Đang hoạt động (M1 + M2)</span>
+      <span class="trang-thai dang">Đang hoạt động</span>
     </div>
-    <div class="kenh">
-      <div>
-        <b>💬 Facebook Messenger / Zalo OA</b>
-        <div style="font-size:.86rem;color:var(--mo)">Thuộc lộ trình giai đoạn M3 — chưa kích hoạt webhook.</div>
+
+    <div class="hang-item" style="margin-top:12px">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+        <div>
+          <b style="font-size:.98rem">💬 Facebook Messenger (Meta Graph API + Webhook)</b>
+          <div style="font-size:.84rem;color:var(--mo)">Webhook URL: <code id="fb-webhook-url">/api/v1/webhooks/messenger</code></div>
+        </div>
+        <span id="fb-status-badge" class="trang-thai cho">Chưa kết nối</span>
       </div>
-      <span class="trang-thai cho">Chưa hỗ trợ (M3)</span>
+
+      <div id="fb-secrets-check" style="margin-top:10px;font-size:.84rem;color:var(--mo)"></div>
+
+      <form id="form-messenger" style="margin-top:10px">
+        <div class="grid2">
+          <div>
+            <label for="fb-page-id">Facebook Page ID *</label>
+            <input type="text" id="fb-page-id" required maxlength="128" placeholder="VD: 109876543210123">
+          </div>
+          <div>
+            <label for="fb-display-name">Tên hiển thị Fanpage *</label>
+            <input type="text" id="fb-display-name" required maxlength="120" placeholder="VD: Fanpage Cửa hàng của Mino">
+          </div>
+        </div>
+        <div id="msg-messenger" class="thong-bao" role="status"></div>
+        <div class="hang-actions">
+          <button type="button" class="btn btn-do" id="btn-fb-disconnect" style="display:none">🔌 Ngắt kết nối</button>
+          <button type="submit" class="btn btn-chinh" id="btn-fb-save">🔗 Lưu &amp; Kích hoạt Messenger</button>
+        </div>
+      </form>
+
+      <div id="fb-outbox-bar" style="margin-top:12px;padding-top:10px;border-top:1px solid var(--vien);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-size:.86rem">
+        <span id="fb-outbox-stats">Hàng đợi gửi tin (Outbox): Đang kiểm tra…</span>
+        <button type="button" class="btn btn-vien" id="btn-outbox-retry">↻ Gửi lại các tin lỗi</button>
+      </div>
+    </div>
+
+    <div class="kenh" style="margin-top:10px">
+      <div>
+        <b>Zalo Official Account</b>
+        <div style="font-size:.86rem;color:var(--mo)">Theo nguyên tắc M3 chỉ tích hợp và vận hành ổn định từng kênh một (hiện ưu tiên Facebook Messenger).</div>
+      </div>
+      <span class="trang-thai cho">Chưa kích hoạt</span>
     </div>
   </section>
 </div>
@@ -570,11 +607,54 @@
     });
   }
 
+  function renderIntegrationState(intData) {
+    if (!intData) return;
+    document.getElementById("fb-webhook-url").textContent =
+      `${window.location.origin}${intData.webhookPath || "/api/v1/webhooks/messenger"}`;
+
+    const sec = intData.secretConfigured || {};
+    document.getElementById("fb-secrets-check").textContent =
+      `Biến môi trường server: Verify Token [${sec.verifyToken ? "✓" : "Thiếu"}] · App Secret [${sec.appSecret ? "✓" : "Thiếu"}] · Page Token [${sec.pageAccessToken ? "✓" : "Thiếu"}]`;
+
+    const badge = document.getElementById("fb-status-badge");
+    const disconnectBtn = document.getElementById("btn-fb-disconnect");
+    const m = intData.messenger;
+
+    if (!m) {
+      badge.className = "trang-thai cho";
+      badge.textContent = "Chưa kết nối";
+      disconnectBtn.style.display = "none";
+    } else {
+      document.getElementById("fb-page-id").value = m.externalAccountId || "";
+      document.getElementById("fb-display-name").value = m.displayName || "";
+      if (m.status === "active") {
+        badge.className = "trang-thai dang";
+        badge.textContent = m.lastErrorCode ? `Đang bật (cảnh báo: ${m.lastErrorCode})` : "Đang hoạt động";
+        disconnectBtn.style.display = "inline-block";
+      } else if (m.status === "error") {
+        badge.className = "trang-thai";
+        badge.style.background = "var(--do-nen)";
+        badge.style.color = "var(--do)";
+        badge.textContent = `Lỗi kết nối (${m.lastErrorCode || "ERROR"})`;
+        disconnectBtn.style.display = "inline-block";
+      } else {
+        badge.className = "trang-thai cho";
+        badge.textContent = "Đã ngắt kết nối";
+        disconnectBtn.style.display = "none";
+      }
+    }
+
+    const ob = intData.outboxSummary || { pendingCount: 0, failedCount: 0, deadLetterCount: 0 };
+    document.getElementById("fb-outbox-stats").textContent =
+      `Hàng đợi Outbox: Đang chờ (${ob.pendingCount}) · Chờ thử lại (${ob.failedCount}) · Lỗi dừng retry (${ob.deadLetterCount})`;
+  }
+
   async function loadDashboardData() {
-    const [shopRes, products, rulesRes] = await Promise.all([
+    const [shopRes, products, rulesRes, intRes] = await Promise.all([
       apiRequest("/api/v1/admin/shop"),
       loadAllAdminProducts(),
-      apiRequest("/api/v1/admin/bot-rules")
+      apiRequest("/api/v1/admin/bot-rules"),
+      apiRequest("/api/v1/admin/integrations")
     ]);
 
     if (shopRes.ok && shopRes.data) {
@@ -590,6 +670,9 @@
     renderProductsList(products);
     if (rulesRes.ok) {
       renderRulesList(rulesRes.data || []);
+    }
+    if (intRes.ok) {
+      renderIntegrationState(intRes.data);
     }
     initialLoaded = true;
   }
@@ -715,6 +798,64 @@
     showBanner("msg-add-rule", "ok", "Đã tạo kịch bản từ khóa mới.");
     const rulesRes = await apiRequest("/api/v1/admin/bot-rules");
     if (rulesRes.ok) renderRulesList(rulesRes.data || []);
+  });
+
+  document.getElementById("form-messenger").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    clearBanner("msg-messenger");
+    const saveBtn = document.getElementById("btn-fb-save");
+    saveBtn.disabled = true;
+    const r = await apiRequest("/api/v1/admin/integrations/messenger", {
+      method: "PUT",
+      body: {
+        externalAccountId: document.getElementById("fb-page-id").value.trim(),
+        displayName: document.getElementById("fb-display-name").value.trim()
+      }
+    });
+    saveBtn.disabled = false;
+    if (!r.ok) {
+      showBanner("msg-messenger", "loi", r.errorMessage);
+      return;
+    }
+    showBanner("msg-messenger", "ok", "Đã lưu và kích hoạt kết nối Facebook Messenger.");
+    const intRes = await apiRequest("/api/v1/admin/integrations");
+    if (intRes.ok) renderIntegrationState(intRes.data);
+  });
+
+  document.getElementById("btn-fb-disconnect").addEventListener("click", async () => {
+    clearBanner("msg-messenger");
+    const r = await apiRequest("/api/v1/admin/integrations/messenger/disconnect", {
+      method: "POST"
+    });
+    if (!r.ok) {
+      showBanner("msg-messenger", "loi", r.errorMessage);
+      return;
+    }
+    showBanner("msg-messenger", "ok", "Đã ngắt kết nối Facebook Messenger.");
+    const intRes = await apiRequest("/api/v1/admin/integrations");
+    if (intRes.ok) renderIntegrationState(intRes.data);
+  });
+
+  document.getElementById("btn-outbox-retry").addEventListener("click", async () => {
+    clearBanner("msg-messenger");
+    const btn = document.getElementById("btn-outbox-retry");
+    btn.disabled = true;
+    const r = await apiRequest("/api/v1/admin/outbound-messages/retry", {
+      method: "POST",
+      body: {}
+    });
+    btn.disabled = false;
+    if (!r.ok) {
+      showBanner("msg-messenger", "loi", r.errorMessage);
+      return;
+    }
+    showBanner(
+      "msg-messenger",
+      "ok",
+      `Đã thử gửi lại ${r.data.retriedCount} tin: Thành công ${r.data.sentCount}, Lỗi ${r.data.failedCount}.`
+    );
+    const intRes = await apiRequest("/api/v1/admin/integrations");
+    if (intRes.ok) renderIntegrationState(intRes.data);
   });
 
   /* ===== INITIAL SESSION CHECK ===== */

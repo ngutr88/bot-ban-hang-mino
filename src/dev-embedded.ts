@@ -212,7 +212,7 @@ async function main(): Promise<void> {
   await seedDemoData(prisma);
 
   const config = loadConfig({ DATABASE_URL: connectionString });
-  const app = await buildApp({ prisma, config });
+  const app = await buildApp({ prisma, config, enableOutboxWorker: true });
 
   const shutdown = async () => {
     await app.close();

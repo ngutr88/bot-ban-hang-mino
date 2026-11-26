@@ -29,6 +29,8 @@ import {
   normalizePhone,
   normalizePhoneQuery
 } from "../orders/order-domain.js";
+import type { MessengerAdapter } from "../integrations/messenger-adapter.js";
+import { dispatchOutboundMessage } from "../integrations/outbox.service.js";
 
 const UUID_PATTERN =
   "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$";
@@ -43,6 +45,7 @@ function serializeConversationSummary(s: ChatSession) {
   return {
     id: s.id,
     channel: s.channel,
+    externalUserId: s.externalUserId,
     visitorName: s.visitorName,
     visitorPhone: s.visitorPhone,
     status: s.status,
@@ -65,6 +68,8 @@ function serializeAdminMessage(
     id: m.id,
     senderType: m.senderType,
     body: m.body,
+    deliveryStatus: m.deliveryStatus,
+    deliveryErrorCode: m.deliveryErrorCode,
     actorAdmin: m.actorAdmin
       ? { id: m.actorAdmin.id, email: m.actorAdmin.emailNormalized }
       : null,
@@ -109,9 +114,10 @@ export async function registerAdminChatRoutes(
   deps: {
     prisma: PrismaClient;
     guards: ReturnType<typeof createAuthGuards>;
+    messengerAdapter: MessengerAdapter;
   }
 ): Promise<void> {
-  const { prisma, guards } = deps;
+  const { prisma, guards, messengerAdapter } = deps;
 
   app.get<{
     Querystring: {
@@ -503,12 +509,33 @@ export async function registerAdminChatRoutes(
       }
 
       const now = new Date();
-      const { createdMsg, updatedSession } = await prisma.$transaction(
+      const { createdMsg, updatedSession, outboundId } = await prisma.$transaction(
         async (tx) => {
           const fresh = await tx.chatSession.findFirst({
             where: { id: session.id, shopId: auth.shopId }
           });
           if (!fresh) throw notFoundError();
+
+          let activeIntegrationId: string | null = null;
+          if (fresh.channel === "messenger") {
+            if (!fresh.externalUserId) {
+              throw conflictError("Phiên Messenger thiếu mã định danh người nhận (PSID).");
+            }
+            const integration = await tx.channelIntegration.findUnique({
+              where: {
+                shopId_provider: {
+                  shopId: auth.shopId,
+                  provider: "messenger"
+                }
+              }
+            });
+            if (!integration || integration.status !== "active") {
+              throw conflictError(
+                "Tích hợp Facebook Messenger hiện đang ngắt kết nối hoặc báo lỗi token."
+              );
+            }
+            activeIntegrationId = integration.id;
+          }
 
           const msg = await tx.chatMessage.create({
             data: {
@@ -519,12 +546,29 @@ export async function registerAdminChatRoutes(
               body: trimmedBody,
               idempotencyKey,
               requestFingerprint: fingerprint,
+              deliveryStatus: fresh.channel === "messenger" ? "pending" : "delivered",
               createdAt: now
             },
             include: {
               actorAdmin: { select: { id: true, emailNormalized: true } }
             }
           });
+
+          let createdOutId: string | null = null;
+          if (fresh.channel === "messenger" && activeIntegrationId && fresh.externalUserId) {
+            const outRow = await tx.outboundMessage.create({
+              data: {
+                shopId: auth.shopId,
+                integrationId: activeIntegrationId,
+                chatSessionId: fresh.id,
+                chatMessageId: msg.id,
+                recipientExternalId: fresh.externalUserId,
+                status: "pending",
+                nextAttemptAt: now
+              }
+            });
+            createdOutId = outRow.id;
+          }
 
           if (fresh.handlingMode !== "human") {
             await tx.chatSessionEvent.create({
@@ -550,14 +594,30 @@ export async function registerAdminChatRoutes(
             }
           });
 
-          return { createdMsg: msg, updatedSession: updated };
+          return { createdMsg: msg, updatedSession: updated, outboundId: createdOutId };
         }
       );
+
+      let finalMsg = createdMsg;
+      if (outboundId) {
+        await dispatchOutboundMessage(prisma, messengerAdapter, outboundId);
+        const refreshed = await prisma.chatMessage.findUnique({
+          where: { id: createdMsg.id },
+          include: {
+            actorAdmin: { select: { id: true, emailNormalized: true } }
+          }
+        });
+        if (refreshed) {
+          finalMsg = refreshed;
+        }
+      }
 
       request.log.info(
         {
           event: "admin_chat_reply_sent",
           chatSessionId: updatedSession.id,
+          channel: updatedSession.channel,
+          deliveryStatus: finalMsg.deliveryStatus,
           adminUserId: auth.adminUserId,
           shopId: auth.shopId
         },
@@ -566,9 +626,9 @@ export async function registerAdminChatRoutes(
 
       return reply.status(201).send({
         data: {
-          message: serializeAdminMessage(createdMsg),
+          message: serializeAdminMessage(finalMsg),
           session: serializeConversationSummary(updatedSession),
-          latestCursor: encodeTimestampIdCursor(createdMsg.createdAt, createdMsg.id)
+          latestCursor: encodeTimestampIdCursor(finalMsg.createdAt, finalMsg.id)
         },
         requestId: request.id
       });

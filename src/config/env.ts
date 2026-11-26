@@ -21,6 +21,11 @@ export interface AppConfig {
   publicChatMessageRateLimitMax: number;
   publicChatMessageRateLimitWindowMs: number;
   chatRetentionDays: number | null;
+  messengerVerifyToken: string | null;
+  messengerAppSecret: string | null;
+  messengerPageAccessToken: string | null;
+  messengerGraphApiBaseUrl: string;
+  messengerSendTimeoutMs: number;
 }
 
 function parsePositiveInt(raw: string | undefined, fallback: number, name: string): number {
@@ -144,6 +149,28 @@ export function loadConfig(overrides: Partial<Record<string, string>> = {}): App
     chatRetentionDays:
       env.CHAT_RETENTION_DAYS && env.CHAT_RETENTION_DAYS.trim() !== ""
         ? parsePositiveInt(env.CHAT_RETENTION_DAYS, 90, "CHAT_RETENTION_DAYS")
-        : null
+        : null,
+    messengerVerifyToken:
+      env.MESSENGER_VERIFY_TOKEN && env.MESSENGER_VERIFY_TOKEN.trim() !== ""
+        ? env.MESSENGER_VERIFY_TOKEN.trim()
+        : null,
+    messengerAppSecret:
+      env.MESSENGER_APP_SECRET && env.MESSENGER_APP_SECRET.trim() !== ""
+        ? env.MESSENGER_APP_SECRET.trim()
+        : null,
+    messengerPageAccessToken:
+      env.MESSENGER_PAGE_ACCESS_TOKEN && env.MESSENGER_PAGE_ACCESS_TOKEN.trim() !== ""
+        ? env.MESSENGER_PAGE_ACCESS_TOKEN.trim()
+        : null,
+    messengerGraphApiBaseUrl: (
+      env.MESSENGER_GRAPH_API_BASE_URL ?? "https://graph.facebook.com/v21.0"
+    )
+      .trim()
+      .replace(/\/+$/, ""),
+    messengerSendTimeoutMs: parsePositiveInt(
+      env.MESSENGER_SEND_TIMEOUT_MS,
+      8000,
+      "MESSENGER_SEND_TIMEOUT_MS"
+    )
   };
 }

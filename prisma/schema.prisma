@@ -35,8 +35,43 @@ enum OrderStatus {
 
 enum ChatChannel {
   web
+  messenger
 
   @@map("chat_channel")
+}
+
+enum ChatMessageDeliveryStatus {
+  delivered
+  pending
+  sent
+  failed
+
+  @@map("chat_message_delivery_status")
+}
+
+enum IntegrationStatus {
+  active
+  disconnected
+  error
+
+  @@map("integration_status")
+}
+
+enum WebhookEventStatus {
+  processed
+  ignored
+  failed
+
+  @@map("webhook_event_status")
+}
+
+enum OutboundMessageStatus {
+  pending
+  sent
+  failed
+  dead_letter
+
+  @@map("outbound_message_status")
 }
 
 enum ChatSessionStatus {
@@ -82,10 +117,13 @@ model Shop {
   orders             Order[]
   orderItems         OrderItem[]
   orderEvents        OrderEvent[]
-  chatSessions       ChatSession[]
-  chatMessages       ChatMessage[]
-  chatNotes          ChatNote[]
-  chatSessionEvents  ChatSessionEvent[]
+  chatSessions        ChatSession[]
+  chatMessages        ChatMessage[]
+  chatNotes           ChatNote[]
+  chatSessionEvents   ChatSessionEvent[]
+  channelIntegrations ChannelIntegration[]
+  webhookEvents       WebhookEvent[]
+  outboundMessages    OutboundMessage[]
 
   @@map("shops")
 }
@@ -233,6 +271,8 @@ model ChatSession {
   id                 String            @id @default(uuid()) @db.Uuid
   shopId             String            @map("shop_id") @db.Uuid
   channel            ChatChannel       @default(web)
+  integrationId      String?           @map("integration_id") @db.Uuid
+  externalUserId     String?           @map("external_user_id") @db.VarChar(128)
   visitorTokenHash   Bytes?            @unique(map: "chat_sessions_visitor_token_hash_key") @map("visitor_token_hash") @db.ByteA
   visitorName        String?           @map("visitor_name") @db.VarChar(120)
   visitorPhone       String?           @map("visitor_phone") @db.VarChar(32)
@@ -247,12 +287,15 @@ model ChatSession {
   createdAt          DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt          DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  shop     Shop               @relation(fields: [shopId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  messages ChatMessage[]
-  notes    ChatNote[]
-  events   ChatSessionEvent[]
+  shop             Shop                @relation(fields: [shopId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  integration      ChannelIntegration? @relation(fields: [integrationId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  messages         ChatMessage[]
+  notes            ChatNote[]
+  events           ChatSessionEvent[]
+  outboundMessages OutboundMessage[]
 
   @@unique([id, shopId], map: "chat_sessions_id_shop_key")
+  @@unique([shopId, channel, externalUserId], map: "chat_sessions_shop_channel_ext_user_key")
   @@index([shopId, lastMessageAt(sort: Desc), id(sort: Desc)], map: "chat_sessions_shop_last_msg_idx")
   @@index([shopId, status, lastMessageAt(sort: Desc), id(sort: Desc)], map: "chat_sessions_shop_status_last_msg_idx")
   @@index([shopId, visitorPhoneNorm], map: "chat_sessions_shop_phone_norm_idx")
@@ -260,20 +303,23 @@ model ChatSession {
 }
 
 model ChatMessage {
-  id                 String         @id @default(uuid()) @db.Uuid
-  shopId             String         @map("shop_id") @db.Uuid
-  chatSessionId      String         @map("chat_session_id") @db.Uuid
-  senderType         ChatSenderType @map("sender_type")
-  actorAdminUserId   String?        @map("actor_admin_user_id") @db.Uuid
-  body               String         @db.VarChar(2000)
-  idempotencyKey     String?        @map("idempotency_key") @db.VarChar(128)
-  requestFingerprint Bytes?         @map("request_fingerprint") @db.ByteA
-  providerMessageId  String?        @map("provider_message_id") @db.VarChar(128)
-  createdAt          DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  id                 String                    @id @default(uuid()) @db.Uuid
+  shopId             String                    @map("shop_id") @db.Uuid
+  chatSessionId      String                    @map("chat_session_id") @db.Uuid
+  senderType         ChatSenderType            @map("sender_type")
+  actorAdminUserId   String?                   @map("actor_admin_user_id") @db.Uuid
+  body               String                    @db.VarChar(2000)
+  idempotencyKey     String?                   @map("idempotency_key") @db.VarChar(128)
+  requestFingerprint Bytes?                    @map("request_fingerprint") @db.ByteA
+  providerMessageId  String?                   @map("provider_message_id") @db.VarChar(128)
+  deliveryStatus     ChatMessageDeliveryStatus @default(delivered) @map("delivery_status")
+  deliveryErrorCode  String?                   @map("delivery_error_code") @db.VarChar(80)
+  createdAt          DateTime                  @default(now()) @map("created_at") @db.Timestamptz(6)
 
-  shop       Shop        @relation(fields: [shopId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  session    ChatSession @relation(fields: [chatSessionId, shopId], references: [id, shopId], onDelete: Restrict, onUpdate: Restrict)
-  actorAdmin AdminUser?  @relation(fields: [actorAdminUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  shop            Shop             @relation(fields: [shopId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  session         ChatSession      @relation(fields: [chatSessionId, shopId], references: [id, shopId], onDelete: Restrict, onUpdate: Restrict)
+  actorAdmin      AdminUser?       @relation(fields: [actorAdminUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  outboundMessage OutboundMessage?
 
   @@unique([chatSessionId, idempotencyKey], map: "chat_messages_session_idem_key")
   @@index([chatSessionId, createdAt, id], map: "chat_messages_session_created_idx")
@@ -311,4 +357,73 @@ model ChatSessionEvent {
 
   @@index([chatSessionId, createdAt, id], map: "chat_session_events_session_created_idx")
   @@map("chat_session_events")
+}
+
+model ChannelIntegration {
+  id                String            @id @default(uuid()) @db.Uuid
+  shopId            String            @map("shop_id") @db.Uuid
+  provider          String            @db.VarChar(32)
+  externalAccountId String            @map("external_account_id") @db.VarChar(128)
+  displayName       String            @map("display_name") @db.VarChar(120)
+  status            IntegrationStatus @default(active)
+  secretRef         String            @default("ENV_MESSENGER_DEFAULT") @map("secret_ref") @db.VarChar(64)
+  lastWebhookAt     DateTime?         @map("last_webhook_at") @db.Timestamptz(6)
+  lastErrorCode     String?           @map("last_error_code") @db.VarChar(80)
+  disconnectedAt    DateTime?         @map("disconnected_at") @db.Timestamptz(6)
+  createdAt         DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime          @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  shop             Shop              @relation(fields: [shopId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  chatSessions     ChatSession[]
+  outboundMessages OutboundMessage[]
+
+  @@unique([shopId, provider], map: "channel_integrations_shop_provider_key")
+  @@unique([provider, externalAccountId], map: "channel_integrations_provider_ext_account_key")
+  @@map("channel_integrations")
+}
+
+model WebhookEvent {
+  id                String             @id @default(uuid()) @db.Uuid
+  shopId            String?            @map("shop_id") @db.Uuid
+  provider          String             @db.VarChar(32)
+  providerEventId   String             @map("provider_event_id") @db.VarChar(160)
+  externalAccountId String             @map("external_account_id") @db.VarChar(128)
+  status            WebhookEventStatus @default(processed)
+  retryCount        Int                @default(0) @map("retry_count")
+  errorCode         String?            @map("error_code") @db.VarChar(80)
+  receivedAt        DateTime           @default(now()) @map("received_at") @db.Timestamptz(6)
+  processedAt       DateTime?          @map("processed_at") @db.Timestamptz(6)
+
+  shop Shop? @relation(fields: [shopId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@unique([provider, providerEventId], map: "webhook_events_provider_event_key")
+  @@index([shopId, receivedAt(sort: Desc)], map: "webhook_events_shop_received_idx")
+  @@map("webhook_events")
+}
+
+model OutboundMessage {
+  id                  String                @id @default(uuid()) @db.Uuid
+  shopId              String                @map("shop_id") @db.Uuid
+  integrationId       String                @map("integration_id") @db.Uuid
+  chatSessionId       String                @map("chat_session_id") @db.Uuid
+  chatMessageId       String                @unique(map: "outbound_messages_chat_message_key") @map("chat_message_id") @db.Uuid
+  recipientExternalId String                @map("recipient_external_id") @db.VarChar(128)
+  status              OutboundMessageStatus @default(pending)
+  attemptCount        Int                   @default(0) @map("attempt_count")
+  maxAttempts         Int                   @default(3) @map("max_attempts")
+  nextAttemptAt       DateTime              @default(now()) @map("next_attempt_at") @db.Timestamptz(6)
+  providerMessageId   String?               @map("provider_message_id") @db.VarChar(128)
+  lastErrorCode       String?               @map("last_error_code") @db.VarChar(80)
+  sentAt              DateTime?             @map("sent_at") @db.Timestamptz(6)
+  createdAt           DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime              @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  shop        Shop               @relation(fields: [shopId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  integration ChannelIntegration @relation(fields: [integrationId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  session     ChatSession        @relation(fields: [chatSessionId, shopId], references: [id, shopId], onDelete: Restrict, onUpdate: Restrict)
+  chatMessage ChatMessage        @relation(fields: [chatMessageId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+
+  @@index([status, nextAttemptAt], map: "outbound_messages_status_next_idx")
+  @@index([shopId, createdAt(sort: Desc)], map: "outbound_messages_shop_created_idx")
+  @@map("outbound_messages")
 }
