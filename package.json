@@ -9,6 +9,7 @@
   },
   "scripts": {
     "dev": "tsx watch src/server.ts",
+    "dev:embedded": "tsx src/dev-embedded.ts",
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",

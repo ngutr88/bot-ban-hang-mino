@@ -50,6 +50,8 @@ npm run admin:create
 npm run dev
 ```
 
+> 💡 **Nếu máy chưa bật Docker Desktop:** bạn có thể chạy ngay bằng PostgreSQL nhúng (lưu dữ liệu cục bộ tại `.pglite/dev-db`, tự động chạy migration + seed mẫu) với lệnh `npm run dev:embedded`, và mở một cửa sổ terminal khác chạy `npm run admin:create` để tạo tài khoản chủ shop.
+
 Mở trình duyệt tại `http://localhost:3000`:
 - Trang bán hàng: `http://localhost:3000/`
 - Cài đặt shop & sản phẩm: `http://localhost:3000/caidat.html`
